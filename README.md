@@ -1,4 +1,4 @@
-# PVFSS Paper Artifact
+# PVFSS Artifact
 
 This repository contains the PVFSS prototype, the PPS-GC baseline used in
 the evaluation, benchmark drivers, and the data reported by the paper.
