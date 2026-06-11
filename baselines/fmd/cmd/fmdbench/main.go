@@ -1,0 +1,190 @@
+package main
+
+import (
+	"crypto/elliptic"
+	"crypto/rand"
+	"flag"
+	"fmt"
+	"os"
+	"time"
+
+	fuzzy "github.com/becgabri/fuzzycrypto"
+)
+
+type result struct {
+	scheme      string
+	n           int
+	ell         int
+	setupMS     int64
+	sendMS      int64
+	serverMS    int64
+	recipientMS int64
+	commBytes   int
+	status      string
+	bottleneck  string
+}
+
+func elapsedMS(start time.Time) int64 {
+	return time.Since(start).Round(time.Millisecond).Milliseconds()
+}
+
+func slowest(r result) string {
+	stage := "setup"
+	best := r.setupMS
+	if r.sendMS > best {
+		stage = "send"
+		best = r.sendMS
+	}
+	if r.serverMS > best {
+		stage = "server"
+		best = r.serverMS
+	}
+	if r.recipientMS > best {
+		stage = "recipient"
+	}
+	return stage
+}
+
+func run(n, ell, gamma int) result {
+	r := result{
+		scheme: "FMD",
+		n:      n,
+		ell:    ell,
+		status: "completed",
+	}
+	if n <= 0 || ell < 0 || ell > n || gamma <= 0 {
+		r.status = "crashed"
+		r.bottleneck = "invalid_parameters"
+		return r
+	}
+
+	curve := elliptic.P256()
+	var scheme fuzzy.ElGamalPower2
+
+	start := time.Now()
+	sk, pk := scheme.KeyGen(curve, gamma, rand.Reader)
+	_, decoyPK := scheme.KeyGen(curve, gamma, rand.Reader)
+	r.setupMS = elapsedMS(start)
+	if sk == nil || pk == nil || decoyPK == nil {
+		r.status = "crashed"
+		r.bottleneck = "keygen_failed"
+		return r
+	}
+
+	start = time.Now()
+	dsk := scheme.Extract(gamma, sk)
+	r.recipientMS = elapsedMS(start)
+	if dsk == nil {
+		r.status = "crashed"
+		r.bottleneck = "extract_failed"
+		return r
+	}
+
+	messages := make([][]byte, 0, n)
+	start = time.Now()
+	for i := 0; i < n; i++ {
+		if i < ell {
+			messages = append(messages, scheme.Flag(curve, rand.Reader, pk))
+		} else {
+			messages = append(messages, scheme.Flag(curve, rand.Reader, decoyPK))
+		}
+	}
+	r.sendMS = elapsedMS(start)
+
+	candidates := make([]int, 0, ell)
+	start = time.Now()
+	for i, msg := range messages {
+		if scheme.Test(curve, msg, dsk) {
+			candidates = append(candidates, i)
+		}
+	}
+	r.serverMS = elapsedMS(start)
+
+	start = time.Now()
+	trueHits := 0
+	for _, idx := range candidates {
+		if idx < ell {
+			trueHits++
+		}
+	}
+	r.recipientMS += elapsedMS(start)
+	r.commBytes = len(candidates) * 8
+
+	if trueHits != ell {
+		r.status = "crashed"
+		r.bottleneck = fmt.Sprintf("true_positive_mismatch_gamma=%d_p=2^-%d_candidates=%d", gamma, gamma, len(candidates))
+	} else {
+		r.bottleneck = fmt.Sprintf("%s_gamma=%d_p=2^-%d_candidates=%d", slowest(r), gamma, gamma, len(candidates))
+	}
+	return r
+}
+
+func average(n, ell, gamma, reps int) result {
+	avg := result{
+		scheme: "FMD",
+		n:      n,
+		ell:    ell,
+		status: "completed",
+	}
+	var lastBottleneck string
+	for i := 0; i < reps; i++ {
+		r := run(n, ell, gamma)
+		avg.setupMS += r.setupMS
+		avg.sendMS += r.sendMS
+		avg.serverMS += r.serverMS
+		avg.recipientMS += r.recipientMS
+		avg.commBytes += r.commBytes
+		if r.status != "completed" {
+			avg.status = r.status
+		}
+		lastBottleneck = r.bottleneck
+	}
+	avg.setupMS /= int64(reps)
+	avg.sendMS /= int64(reps)
+	avg.serverMS /= int64(reps)
+	avg.recipientMS /= int64(reps)
+	avg.commBytes /= reps
+	avg.bottleneck = fmt.Sprintf("%s_avg_reps=%d", lastBottleneck, reps)
+	return avg
+}
+
+func printResult(r result) {
+	fmt.Printf("[BENCH_CSV] %s,%d,%d,%d,%d,%d,%d,%d,%s,%s\n",
+		r.scheme,
+		r.n,
+		r.ell,
+		r.setupMS,
+		r.sendMS,
+		r.serverMS,
+		r.recipientMS,
+		r.commBytes,
+		r.status,
+		r.bottleneck,
+	)
+}
+
+func main() {
+	n := flag.Int("N", 4096, "number of tested messages")
+	ell := flag.Int("ell", 50, "number of true positives")
+	gamma := flag.Int("gamma", 24, "FMD2 false-positive exponent")
+	reps := flag.Int("reps", 5, "number of repetitions to average")
+	all := flag.Bool("all", false, "run the paper benchmark N set")
+	flag.Parse()
+
+	fmt.Println("[BENCH_CSV] scheme,N,ell,setup_ms,send_ms,server_ms,recipient_ms,comm_bytes,status,bottleneck")
+	if *reps <= 0 {
+		fmt.Fprintln(os.Stderr, "-reps must be positive")
+		os.Exit(2)
+	}
+	if *all {
+		for _, n := range []int{256, 512, 1024, 2048, 4096, 8192, 16384} {
+			printResult(average(n, *ell, *gamma, *reps))
+		}
+		return
+	}
+	if *n <= 0 {
+		fmt.Fprintln(os.Stderr, "-N must be positive")
+		os.Exit(2)
+	}
+	printResult(average(*n, *ell, *gamma, *reps))
+}

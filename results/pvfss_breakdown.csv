@@ -1,0 +1,8 @@
+N,ell,offline_setup_ms,keygen_ms,eval_ms,shuffle_ms,compress_ms,reconstruct_ms,comm_bytes,status,bottleneck
+256,50,5084,2.65,0.732,0.206,75.025,0.006,800,completed,setup_reps=1_online_avg_reps=5
+512,50,10393,5.222,1.551,0.301,147.855,0.018,800,completed,setup_reps=1_online_avg_reps=5
+1024,50,20906,11.292,3.057,0.407,290.332,0.018,800,completed,setup_reps=1_online_avg_reps=5
+2048,50,41635,24.262,5.987,0.62,587.393,0.038,800,completed,setup_reps=1_online_avg_reps=5
+4096,50,84376,48.614,12.525,1.229,1180.44,0.044,800,completed,setup_reps=1_online_avg_reps=5
+8192,50,173020,104.176,24.326,1.762,2509.33,0.096,800,completed,setup_reps=1_online_avg_reps=5
+16384,50,349484,232.014,49.947,3.989,4901.86,0.105,800,completed,setup_reps=1_online_avg_reps=5

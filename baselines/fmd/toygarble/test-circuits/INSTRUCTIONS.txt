@@ -1,0 +1,141 @@
+
+  'Bristol Fashion' MPC Circuits
+
+If you are looking for the old 'Bristol Format' circuits please see here
+<https://homes.esat.kuleuven.be/~nsmart/MPC/old-circuits.html>. We call
+this new format 'Bristol Fashion' as it is related to the old format,
+which was called 'Bristol Format' by some others (as they were
+originally hosted in Bristol). The new format is tidier than the old
+format, which also is a justification for the new name of Bristol
+Fashion <https://wordhistories.net/2017/10/18/shipshape-bristol-fashion/>.
+
+Our new format is utilized in the SCALE-MAMBA software system to define
+the circuits for garbling. The new format is designed to be independent
+of the number of parties, and to capture more the nature of the function
+we are evaluating.
+
+The format is defined by a list of gates. Eac gate has one or two input
+wires (INV/NOT/EQ/EQW gates have only one input wire, XOR and AND have
+two input wires). A gate can have only one output wire. Each file is of
+the following format:
+
+  * A line defining the number of gates and then the number of wires in
+    the circuit.
+  * The number of input values niv (e.g. if doing z=a+b mod p we have
+    niv=3, one input each for a, b and p).
+      o Then niv numbers defining the number of input wires per input
+        value: ni_1,..,ni_niv 
+  * The number of output values nov (e.g. if doing z=a+b mod p we have
+    nov=1, corresponding to z).
+      o Then nov numbers defining the number of output wires per output
+        value: no_1,...,no_nov 
+  * Then n numbers defining the values i_0,...,i_{n-1} of wires in the
+    inputs to the function for each input value.
+  * Then n numbers defining the values o_0,...,o_{n-1} of wires in the
+    outputs to the function for each output value.
+  * The gates are then given in topological order, so we can evaluate
+    them in sequence.
+  * Each gate is defined by
+      o Number input wires (1 or 2)
+      o Number output wires (Always 1)
+      o List of input wires
+      o List of output wires
+      o Gate operation (XOR, AND or INV). 
+    This is a bit redundant, as the first two entries can be inferred
+    from the last, but we keep this for backwards compatibility reasons
+      o So for example
+
+                   2 1 3 4 5 XOR
+            
+
+        corresponds to
+
+                 w_5 = XOR(w_3,w_4)
+            
+
+      o We also use
+
+                   1 1 0 3 EQ 
+                   1 1 1 4 EQ 
+            
+
+        to say that wire 3 is assigned the value 0 and wire 4 the value 1
+      o And we use
+
+                   1 1 0 4 EQW
+             
+
+        to say wire 4 should equal wire 1 
+
+Note:
+
+ 1. The wire numbering is ordered so that the first i_0 wires correspond
+    to the first input value, the next i_1 wires correspond to the
+    second input value and so on.
+ 2. With the last (o_0+...+o_{n-1}) wires corresponding to the outputs
+    of the function, where n=no_1+...+no_nov 
+
+Currently we only have a few circuits available, more will be added as
+time goes by.
+
+
+      Arithmetic Functions
+
+*Function* 	*File* 	*No. ANDs* 	*No. XORs* 	*No. INVs*
+64-bit Adder 	adder64.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/adder64.txt> 	187 	127 	218
+64-bit Subtract 	sub64.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/sub64.txt> 	187 	127 	249
+64-bit Negation 	neg64.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/neg64.txt> 	62 	63 	64
+64x64 -> 64 bit Multiplier 	mult64.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/mult64.txt> 	7875 	3946 	5039
+64x64 -> 128 bit Multiplier 	mult2_64.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/mult2_64.txt> 	14171 	4401
+9636
+64x64-bit Division 	divide64.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/divide64.txt> 	8660 	6099 	4738
+64-bit Equal to Zero Test 	zero_equal.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/zero_equal.txt> 	63 	0 	64
+
+
+      Cryptographic Functions
+
+*Function* 	*File* 	*No. ANDs* 	*No. XORs* 	*No. INVs*
+AES-128(k,m) 	aes_128.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/aes_128.txt> 	6400 	28176 	2087
+AES-192(k,m) 	aes_192.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/aes_192.txt> 	7168 	32080 	2317
+AES-256(k,m) 	aes_256.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/aes_256.txt> 	8832 	39008 	2826
+Keccak-f 	Keccak_f.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/Keccak_f.txt> 	38400
+115200 	38486
+SHA-256 	sha256.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/sha256.txt> 	22573 	110644
+1856
+SHA-512 	sha512.txt
+<https://homes.esat.kuleuven.be/~nsmart/MPC/sha512.txt> 	57947 	286724
+4946
+
+Note for AES-128 the wire orders are in the reverse order as used in the
+examples given in our earlier `Bristol Format', thus bit 0 becomes bit
+127 etc, for key, plaintext and message.
+
+For AES we created a design using the Boyar-Peralta S-Boxes, which have
+32 AND gates per S-Box.
+
+For SHA-256 and SHA-512 we give a circuit which maps an input buffer and
+an input chaining state to the next chaining state.
+
+------------------------------------------------------------------------
+The circuits were created using Synposis tools from VHDL source. After
+the associated NetList was produced we post-processed them into the
+format described above, for use within the SCALE-MAMBA engine.
+
+Victor Arribas Abril
+Pieter Maene
+Nele Mertens
+Danilo Sijacic
+Nigel Smart
+

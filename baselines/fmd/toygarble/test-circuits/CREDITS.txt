@@ -1,0 +1,9 @@
+These circuits were created for use with the MAMBA engine by:
+
+Victor Arribas Abril
+Pieter Maene
+Nele Mertens
+Danilo Sijacic
+Nigel Smart
+
+Sources: https://homes.esat.kuleuven.be/~nsmart/MPC/

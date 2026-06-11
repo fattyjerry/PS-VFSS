@@ -1,0 +1,3 @@
+return_value: uint64;
+INPUT_A: { a: uint8[6]; };
+INPUT_B: { b: uint8; };
