@@ -29,6 +29,8 @@ struct options
     int bits;
     int repetitions;
     int warmups;
+    int threads;
+    bool compare_serial;
 };
 
 static void usage(const char *program)
@@ -36,8 +38,11 @@ static void usage(const char *program)
     fprintf(
         stderr,
         "Usage: %s [--users N] [--bits N] [--repetitions N] [--warmups N]\n"
+        "          [--threads N] [--compare-serial]\n"
         "\n"
-        "Serial VerEval benchmark over a deterministic, distinct X_reg.\n"
+        "VerEval benchmark over a deterministic, distinct X_reg.\n"
+        "threads=1 uses the original serial implementation.\n"
+        "threads>1 uses the semantics-preserving parallel implementation.\n"
         "CSV is written to stdout and progress information to stderr.\n",
         program);
 }
@@ -75,6 +80,8 @@ static bool parse_options(int argc, char **argv, struct options *options)
     options->bits = 50;
     options->repetitions = 5;
     options->warmups = 1;
+    options->threads = 1;
+    options->compare_serial = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -82,6 +89,12 @@ static bool parse_options(int argc, char **argv, struct options *options)
         {
             usage(argv[0]);
             exit(EXIT_SUCCESS);
+        }
+
+        if (strcmp(argv[i], "--compare-serial") == 0)
+        {
+            options->compare_serial = true;
+            continue;
         }
 
         if (i + 1 >= argc)
@@ -122,6 +135,14 @@ static bool parse_options(int argc, char **argv, struct options *options)
                 return false;
             }
         }
+        else if (strcmp(argv[i], "--threads") == 0)
+        {
+            if (!parse_int(argv[++i], &options->threads))
+            {
+                fprintf(stderr, "Invalid --threads value\n");
+                return false;
+            }
+        }
         else
         {
             fprintf(stderr, "Unknown option: %s\n", argv[i]);
@@ -130,9 +151,13 @@ static bool parse_options(int argc, char **argv, struct options *options)
     }
 
     if (options->users == 0 || options->bits < 1 || options->bits > 64 ||
-        options->repetitions < 1 || options->warmups < 0)
+        options->repetitions < 1 || options->warmups < 0 ||
+        options->threads < 1)
     {
-        fprintf(stderr, "Require users>0, 1<=bits<=64, repetitions>0, warmups>=0\n");
+        fprintf(
+            stderr,
+            "Require users>0, 1<=bits<=64, repetitions>0, "
+            "warmups>=0, threads>0\n");
         return false;
     }
 
@@ -226,7 +251,8 @@ static double evaluate_party(
     uint128_t *outputs,
     uint8_t proof[PROOF_BYTES],
     const uint8_t hash_key1[16],
-    const uint8_t hash_key2[16])
+    const uint8_t hash_key2[16],
+    int threads)
 {
     struct Hash *hash1 = NULL;
     struct Hash *hash2 = NULL;
@@ -242,17 +268,36 @@ static double evaluate_party(
         exit(EXIT_FAILURE);
     }
 
-    batchEvalVDPF(
-        ctx,
-        hash1,
-        hash2,
-        bits,
-        party,
-        key,
-        identifiers,
-        users,
-        (uint8_t *)outputs,
-        proof);
+    if (threads == 1)
+    {
+        batchEvalVDPF(
+            ctx,
+            hash1,
+            hash2,
+            bits,
+            party,
+            key,
+            identifiers,
+            users,
+            (uint8_t *)outputs,
+            proof);
+    }
+    else if (batchEvalVDPFParallel(
+                 ctx,
+                 hash1,
+                 hash2,
+                 bits,
+                 party,
+                 key,
+                 identifiers,
+                 users,
+                 (uint8_t *)outputs,
+                 proof,
+                 threads) != 0)
+    {
+        fprintf(stderr, "Parallel VDPF evaluation failed\n");
+        exit(EXIT_FAILURE);
+    }
 
     if (clock_gettime(CLOCK_MONOTONIC, &end) != 0)
     {
@@ -353,11 +398,13 @@ int main(int argc, char **argv)
 
     fprintf(
         stderr,
-        "[BENCH] implementation=serial users=%" PRIu64
-        " bits=%d repetitions=%d warmups=%d target_position=%" PRIu64
-        " key_bytes=%zu\n",
+        "[BENCH] implementation=%s users=%" PRIu64
+        " bits=%d threads=%d repetitions=%d warmups=%d "
+        "target_position=%" PRIu64 " key_bytes=%zu\n",
+        options.threads == 1 ? "serial" : "parallel",
         options.users,
         options.bits,
+        options.threads,
         options.repetitions,
         options.warmups,
         target_position,
@@ -365,6 +412,97 @@ int main(int argc, char **argv)
 
     uint8_t proof0[PROOF_BYTES];
     uint8_t proof1[PROOF_BYTES];
+
+    if (options.compare_serial)
+    {
+        uint128_t *serial_outputs0 =
+            (uint128_t *)malloc(
+                (size_t)options.users * sizeof(uint128_t));
+        uint128_t *serial_outputs1 =
+            (uint128_t *)malloc(
+                (size_t)options.users * sizeof(uint128_t));
+        uint8_t serial_proof0[PROOF_BYTES];
+        uint8_t serial_proof1[PROOF_BYTES];
+        if (serial_outputs0 == NULL || serial_outputs1 == NULL)
+        {
+            fprintf(stderr, "Serial comparison allocation failed\n");
+            return EXIT_FAILURE;
+        }
+
+        (void)evaluate_party(
+            ctx,
+            options.bits,
+            false,
+            key0,
+            identifiers,
+            options.users,
+            serial_outputs0,
+            serial_proof0,
+            hash_key1,
+            hash_key2,
+            1);
+        (void)evaluate_party(
+            ctx,
+            options.bits,
+            true,
+            key1,
+            identifiers,
+            options.users,
+            serial_outputs1,
+            serial_proof1,
+            hash_key1,
+            hash_key2,
+            1);
+        (void)evaluate_party(
+            ctx,
+            options.bits,
+            false,
+            key0,
+            identifiers,
+            options.users,
+            outputs0,
+            proof0,
+            hash_key1,
+            hash_key2,
+            options.threads);
+        (void)evaluate_party(
+            ctx,
+            options.bits,
+            true,
+            key1,
+            identifiers,
+            options.users,
+            outputs1,
+            proof1,
+            hash_key1,
+            hash_key2,
+            options.threads);
+
+        bool serial_equivalent =
+            memcmp(
+                serial_outputs0,
+                outputs0,
+                (size_t)options.users * sizeof(uint128_t)) == 0 &&
+            memcmp(
+                serial_outputs1,
+                outputs1,
+                (size_t)options.users * sizeof(uint128_t)) == 0 &&
+            memcmp(serial_proof0, proof0, PROOF_BYTES) == 0 &&
+            memcmp(serial_proof1, proof1, PROOF_BYTES) == 0;
+        fprintf(
+            stderr,
+            "[CHECK] serial_equivalent=%d users=%" PRIu64
+            " threads=%d\n",
+            serial_equivalent ? 1 : 0,
+            options.users,
+            options.threads);
+        free(serial_outputs0);
+        free(serial_outputs1);
+        if (!serial_equivalent)
+        {
+            return EXIT_FAILURE;
+        }
+    }
 
     for (int warmup = 0; warmup < options.warmups; ++warmup)
     {
@@ -378,7 +516,8 @@ int main(int argc, char **argv)
             outputs0,
             proof0,
             hash_key1,
-            hash_key2);
+            hash_key2,
+            options.threads);
         (void)evaluate_party(
             ctx,
             options.bits,
@@ -389,7 +528,8 @@ int main(int argc, char **argv)
             outputs1,
             proof1,
             hash_key1,
-            hash_key2);
+            hash_key2,
+            options.threads);
     }
 
     printf(
@@ -410,7 +550,8 @@ int main(int argc, char **argv)
             outputs0,
             proof0,
             hash_key1,
-            hash_key2);
+            hash_key2,
+            options.threads);
         double server1_ms = evaluate_party(
             ctx,
             options.bits,
@@ -421,7 +562,8 @@ int main(int argc, char **argv)
             outputs1,
             proof1,
             hash_key1,
-            hash_key2);
+            hash_key2,
+            options.threads);
 
         double verify_start_ms = now_ms();
         bool proof_equal = memcmp(proof0, proof1, PROOF_BYTES) == 0;
@@ -443,10 +585,12 @@ int main(int argc, char **argv)
                 : 0.0;
 
         printf(
-            "serial,%" PRIu64 ",%d,1,%d,%.6f,%.6f,%.6f,%.6f,"
+            "%s,%" PRIu64 ",%d,%d,%d,%.6f,%.6f,%.6f,%.6f,"
             "%.6f,%.6f,%.3f,%.3f,%d,%d\n",
+            options.threads == 1 ? "serial" : "parallel",
             options.users,
             options.bits,
+            options.threads,
             repetition,
             keygen_ms,
             server0_ms,

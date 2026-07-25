@@ -1,7 +1,7 @@
 TARGET = test
 BENCH_TARGET = bench_vereval
-CFLAGS = -O3
-LDFLAGS = -lcrypto -lssl -lm
+CFLAGS = -O3 -pthread
+LDFLAGS = -lcrypto -lssl -lm -pthread
 
 $(TARGET): test.o libdpf.a
 	gcc $^ -o $@ $(LDFLAGS)
@@ -23,6 +23,9 @@ dpf.o: dpf.c ../include/dpf.h
 
 mmo.o: mmo.c ../include/mmo.h 
 	gcc $(CFLAGS) -c -o $@ $< $(LDFLAGS)
+
+vdpf.o: vdpf.c ../include/dpf.h ../include/mmo.h ../include/common.h ../include/sha256.h
+	gcc $(CFLAGS) -std=gnu11 -c -o $@ $<
 
 clean:
 	rm -f *.o *.a $(TARGET) $(BENCH_TARGET)

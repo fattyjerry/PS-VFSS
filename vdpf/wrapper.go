@@ -6,7 +6,7 @@ package dpf
 // Simon Langowski spent many hours debugging this.
 
 // #cgo CFLAGS: -I${SRCDIR}/include
-// #cgo LDFLAGS: ${SRCDIR}/src/libdpf.a -lcrypto -lssl -lm
+// #cgo LDFLAGS: ${SRCDIR}/src/libdpf.a -lcrypto -lssl -lm -pthread
 // #include "dpf.h"
 // #include "mmo.h"
 import "C"

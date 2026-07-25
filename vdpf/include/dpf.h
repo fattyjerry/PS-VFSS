@@ -49,6 +49,7 @@ extern void fullDomainDPF(EVP_CIPHER_CTX *ctx, int size, bool b, unsigned char *
 // VDPF functions
 extern void genVDPF(EVP_CIPHER_CTX *ctx, struct Hash *hash, int size, uint64_t index, unsigned char *k0, unsigned char *k1);
 extern void batchEvalVDPF(EVP_CIPHER_CTX *ctx, struct Hash *mmo_hash1, struct Hash *mmo_hash2, int size, bool b, unsigned char *k, uint64_t *in, uint64_t inl, uint8_t *out, uint8_t *pi);
+extern int batchEvalVDPFParallel(EVP_CIPHER_CTX *ctx, struct Hash *mmo_hash1, struct Hash *mmo_hash2, int size, bool b, unsigned char *k, uint64_t *in, uint64_t inl, uint8_t *out, uint8_t *pi, int threads);
 extern void fullDomainVDPF(EVP_CIPHER_CTX *ctx, struct Hash *mmo_hash1, struct Hash *mmo_hash2, int size, bool b, unsigned char *k, uint8_t *out, uint8_t *proof);
 
 #endif
