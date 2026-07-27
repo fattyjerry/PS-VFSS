@@ -31,6 +31,9 @@ claim a completed runtime. See `results/README.md` for details.
 The tested environment is Linux x86-64 with GCC, CMake 3.21+, OpenSSL,
 RELIC, EMP Toolkit, and cryptoTools. The processor must support AES-NI and
 AVX2 because the prototype is compiled with `-maes -mavx2 -march=native`.
+The preprocessing code requests a 3072-bit Paillier key. RELIC must therefore
+use dynamic big-number allocation (`ALLOC=DYNAMIC`) or be built with
+`BN_PRECI=3072`; a smaller static precision fails with `ERR_NO_PRECI`.
 
 Set the dependency prefixes and build:
 
@@ -52,6 +55,17 @@ Run a small two-party smoke test:
 python3 pvfss/run_psvfss_unified.py \
   --binary pvfss/build/src/test --ns 16 --T 4 --ell 3 --online-reps 1
 ```
+
+Run the admission-time VDPF verification tests:
+
+```bash
+pvfss/build/src/admission_test
+```
+
+The test simulates both non-colluding servers on the same ordered registered
+identifier sequence. It checks that an honest key pair is accepted and stored,
+while inconsistent key shares, tampered proofs, and duplicate signal
+identifiers are rejected without changing either verified signal-key database.
 
 ## Build baselines
 

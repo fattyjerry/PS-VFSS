@@ -5,11 +5,41 @@
 #include <iomanip>
 #include "server.h"
 #include<cstring>
+#include <cstdint>
+#include <vector>
 extern "C"{
 #include <relic/relic.h>
 #include <relic/relic_bn.h>
 #include <smmintrin.h>
 }
+
+namespace {
+
+void send_bn(HighSpeedNetIO *io, bn_t value) {
+    const uint32_t size = static_cast<uint32_t>(bn_size_bin(value));
+    std::vector<uint8_t> buffer(size);
+    if (size != 0) {
+        bn_write_bin(buffer.data(), static_cast<int>(size), value);
+    }
+    io->send_data(&size, sizeof(size));
+    if (size != 0) {
+        io->send_data(buffer.data(), size);
+    }
+}
+
+void recv_bn(HighSpeedNetIO *io, bn_t value) {
+    uint32_t size = 0;
+    io->recv_data(&size, sizeof(size));
+    std::vector<uint8_t> buffer(size);
+    if (size != 0) {
+        io->recv_data(buffer.data(), size);
+        bn_read_bin(value, buffer.data(), static_cast<int>(size));
+    } else {
+        bn_zero(value);
+    }
+}
+
+}  // namespace
 
 
 void bn_2_block_128(bn_t a, block &b){
@@ -105,6 +135,15 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
     bn_t p2b;
     char str[RLC_BN_SIZE + 1];  // RLC_BN_SIZE是大数的最大长度
     int len = RLC_BN_SIZE;
+    bn_null(fa);
+    bn_null(fb);
+    bn_null(c);
+    bn_null(pub);
+    bn_null(Efa);
+    bn_null(Efb);
+    bn_null(t);
+    bn_null(p2b);
+    phpe_null(prv);
     bn_new(fa);
     bn_new(fb);
     bn_new(c);
@@ -151,9 +190,9 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
             //std::cout<<"Dfb = ";bn_write_str(str, len, fb, 10);  printf("%s\n", str);//bn_print(fb);
 
             //1.P0将Enc(a)和Enc(b)发给P1; and pub key
-            io->send_data(&Efa, sizeof(bn_t));
-            io->send_data(&Efb, sizeof(bn_t));
-            io->send_data(&pub, sizeof(bn_t));
+            send_bn(io, Efa);
+            send_bn(io, Efb);
+            send_bn(io, pub);
 
 
 
@@ -193,9 +232,11 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
 
             //3. P0计算c0=a0b0+dec(v) = a0b0+a0b1+b0a1+r;
             bn_t Ev, v;
+            bn_null(Ev);
+            bn_null(v);
             bn_new(Ev);
             bn_new(v);
-            io->recv_data(&Ev, sizeof(bn_t));
+            recv_bn(io, Ev);
             //std::cout<<"Ev = ";bn_write_str(str, len, Ev, 10);  printf("%s\n", str);//bn_print(Ev);
             //start = std::chrono::system_clock::now();
             cp_phpe_dec(v, Ev, prv);
@@ -218,15 +259,20 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
             bn_clean(v);
         } else {
             //1.P0将Enc(a)和Enc(b)发给P1; and pub key
-            io->recv_data(&Efa, sizeof(bn_t));
-            io->recv_data(&Efb, sizeof(bn_t));
+            recv_bn(io, Efa);
+            recv_bn(io, Efb);
 
-            io->recv_data(&pub, sizeof(bn_t));
+            recv_bn(io, pub);
 
 
             //std::cout<<"Efa = ";bn_write_str(str, len, Efa, 10);  printf("%s\n", str);//bn_print(Efa);
             //std::cout<<"Efb = ";bn_write_str(str, len, Efb, 10);  printf("%s\n", str);//bn_print(Efb);
             bn_t r, t1, t2, v, n2;
+            bn_null(r);
+            bn_null(t1);
+            bn_null(t2);
+            bn_null(v);
+            bn_null(n2);
             bn_new(r);
             bn_new(t1);
             bn_new(t2);
@@ -270,7 +316,7 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
             cp_phpe_add(v, v, r, pub);
             //std::cout<<"v = v * r =";bn_write_str(str, len, v, 10);  printf("%s\n", str);//bn_print(v);
 
-            io->send_data(&v, sizeof(bn_t));
+            send_bn(io, v);
 
             bn_clean(r);
             bn_clean(t1);
@@ -299,21 +345,25 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
 
 
     if(party == ALICE){
-        io->send_data(&fa, sizeof(bn_t));
-        io->send_data(&fb, sizeof(bn_t));
-        io->send_data(&t, sizeof(bn_t));
+        send_bn(io, fa);
+        send_bn(io, fb);
+        send_bn(io, t);
         //std::cout<<"a0 = ";bn_print(fa);
         //std::cout<<"b0 = ";bn_print(fb);
         //std::cout<<"c0 = ";bn_print(t);
     }else{
         bn_t a0, b0, c0, cc;
+        bn_null(a0);
+        bn_null(b0);
+        bn_null(c0);
+        bn_null(cc);
         bn_new(a0);
         bn_new(b0);
         bn_new(c0);
         bn_new(cc);
-        io->recv_data(&a0, sizeof(bn_t));
-        io->recv_data(&b0, sizeof(bn_t));
-        io->recv_data(&c0, sizeof(bn_t));
+        recv_bn(io, a0);
+        recv_bn(io, b0);
+        recv_bn(io, c0);
         //std::cout<<"a1 = ";bn_print(fa);
         //std::cout<<"b1 = ";bn_print(fb);
         //std::cout<<"c1 = ";bn_print(t);
@@ -411,6 +461,11 @@ int testa(void) {
         core_clean();
         //return BKERR;
     }
+    bn_null(a);
+    bn_null(b);
+    bn_null(c);
+    bn_null(pub);
+    phpe_null(prv);
     bn_new(a);
     bn_new(b);
     bn_new(c);
@@ -419,6 +474,12 @@ int testa(void) {
     cp_phpe_gen(pub, prv, 7);
     bn_rand_mod(a, pub);
     bn_t fa, fb, Efa, Efb,Dfa, Dfb;
+    bn_null(fa);
+    bn_null(fb);
+    bn_null(Efa);
+    bn_null(Efb);
+    bn_null(Dfa);
+    bn_null(Dfb);
     bn_new(fa);
     bn_new(fb);
     bn_new(Efa);

@@ -1,11 +1,13 @@
 #include "dpf.h"
 
+#include <openssl/crypto.h>
 #include <openssl/rand.h>
 
 #include <array>
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
 extern "C" {
@@ -171,6 +173,10 @@ void DPF::Gen(uint64_t alpha, uint64_t beta, DPFKey *key) {
   key[1].fcw = beta;
 }
 
+size_t DPF::ExpectedKeySize() const {
+  return vdpf_key_size(this->bit_length);
+}
+
 uint64_t DPF::Eval(uint8_t b, DPFKey key, uint64_t input) {
   if (!state) {
     throw std::runtime_error("DPF state is not initialized");
@@ -196,6 +202,73 @@ uint64_t DPF::Eval(uint8_t b, DPFKey key, uint64_t input) {
   uint64_t raw = 0;
   std::memcpy(&raw, out, sizeof(uint64_t));
   return raw & 1ULL;
+}
+
+VDPFEvaluation DPF::VerEval(
+    uint8_t b,
+    const DPFKey &key,
+    const std::vector<uint64_t> &inputs) {
+  if (!state) {
+    throw std::runtime_error("DPF state is not initialized");
+  }
+  if (b > 1) {
+    throw std::invalid_argument("VDPF party must be 0 or 1");
+  }
+  if (inputs.empty()) {
+    throw std::invalid_argument("VDPF verification input sequence is empty");
+  }
+  if (key.vdpf_key == nullptr || key.vdpf_key_len != ExpectedKeySize()) {
+    throw std::invalid_argument("invalid VDPF key share");
+  }
+  if ((key.vdpf_key[0] & 1U) != b) {
+    throw std::invalid_argument("VDPF key share does not match server party");
+  }
+  if (this->bit_length < 64) {
+    const uint64_t domain_size = 1ULL << this->bit_length;
+    for (uint64_t input : inputs) {
+      if (input >= domain_size) {
+        throw std::invalid_argument("VDPF verification input is outside the domain");
+      }
+    }
+  }
+  constexpr size_t kOutputBytes = 16;
+  if (inputs.size() > std::numeric_limits<size_t>::max() / kOutputBytes) {
+    throw std::length_error("VDPF verification output is too large");
+  }
+
+  state->reset_hashes();
+  std::vector<uint64_t> mutable_inputs(inputs);
+  std::vector<uint8_t> raw_outputs(inputs.size() * kOutputBytes);
+  VDPFEvaluation result;
+  result.outputs.resize(inputs.size());
+
+  batchEvalVDPF(
+      state->ctx,
+      state->h1,
+      state->h2,
+      this->bit_length,
+      b != 0,
+      key.vdpf_key,
+      mutable_inputs.data(),
+      static_cast<uint64_t>(mutable_inputs.size()),
+      raw_outputs.data(),
+      result.proof.data());
+
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    uint64_t raw = 0;
+    std::memcpy(&raw, raw_outputs.data() + i * kOutputBytes, sizeof(raw));
+    result.outputs[i] = raw & 1ULL;
+  }
+  return result;
+}
+
+bool DPF::VerifyProofs(
+    const VDPFProof &proof0,
+    const VDPFProof &proof1) {
+  return CRYPTO_memcmp(
+             proof0.data(),
+             proof1.data(),
+             proof0.size()) == 0;
 }
 
 void DPF::FreeKey(DPFKey key) {

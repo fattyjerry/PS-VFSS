@@ -14,8 +14,19 @@
 #include <cryptoTools/Common/block.h>
 
 #include <cryptoTools/Common/Timer.h>
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <vector>
+
+constexpr size_t kVDPFProofBytes = 32;
+using VDPFProof = std::array<uint8_t, kVDPFProofBytes>;
+
+struct VDPFEvaluation {
+  std::vector<uint64_t> outputs;
+  VDPFProof proof{};
+};
 
 // TODO: support template like template <typename GroupEle>
 struct DPFKey {
@@ -44,6 +55,17 @@ public:
   void Gen(uint64_t alpha, uint64_t beta, DPFKey *key);
 
   uint64_t Eval(uint8_t b, DPFKey key, uint64_t input);
+
+  VDPFEvaluation VerEval(
+      uint8_t b,
+      const DPFKey &key,
+      const std::vector<uint64_t> &inputs);
+
+  static bool VerifyProofs(
+      const VDPFProof &proof0,
+      const VDPFProof &proof1);
+
+  size_t ExpectedKeySize() const;
 
   void FreeKey(DPFKey key);
 

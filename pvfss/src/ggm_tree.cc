@@ -23,8 +23,10 @@ void ExpandNode(GGMNode *node,
   PPRG(seed, s);
   
   uint8_t idx = layer;
-  lcw = key.scw[idx] | osuCrypto::block(key.tcw_l[idx]);
-  rcw = key.scw[idx] | osuCrypto::block(key.tcw_r[idx]);
+  lcw = key.scw[idx] |
+      osuCrypto::toBlock(0, static_cast<uint64_t>(key.tcw_l[idx]));
+  rcw = key.scw[idx] |
+      osuCrypto::toBlock(0, static_cast<uint64_t>(key.tcw_r[idx]));
 
   if (t) {
     lnode->word = s[0] ^ lcw;
@@ -43,7 +45,8 @@ void ExpandNode(GGMNode *node,
 
 void GGMTree::FromDPFKey(DPFKey key, uint8_t b) {
   this->root = (GGMNode *)malloc(sizeof(GGMNode));
-  this->root->word = key.s | osuCrypto::block(b);
+  this->root->word =
+      key.s | osuCrypto::toBlock(0, static_cast<uint64_t>(b));
   ExpandNode(this->root, key, 0, this->depth);
 }
 

@@ -5,7 +5,7 @@ void PPRG(osuCrypto::block s, osuCrypto::block *rand) {
   osuCrypto::AES aes(s);
   osuCrypto::block pt[2] = { osuCrypto::ZeroBlock, osuCrypto::OneBlock };
 
-  aes.ecbEncBlocks<2>(pt, rand);
+  aes.ecbEncBlocks(pt, 2, rand);
 }
 
 void HalfPRG(osuCrypto::block s, osuCrypto::block& rand, uint8_t b) {
