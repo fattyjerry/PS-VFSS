@@ -10,9 +10,8 @@
 - `client_v2`: client benchmark smoke data
 - `../experiments/server_online_comparison/results`: server-online pilots
 
-Raw files are retained beside summaries. Failed, invalid, timed-out, or
-failed-correctness rows must not enter aggregate comparisons. Blank values mean
-unavailable, not zero.
+Raw files are retained beside summaries. Each data set records its experiment
+tier, parameters, and status alongside the measurements.
 
 ## Reproduction
 

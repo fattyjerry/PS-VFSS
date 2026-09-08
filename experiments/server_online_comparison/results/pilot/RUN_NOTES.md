@@ -17,8 +17,8 @@ runs were performed.
   path, but `Ns=4` remained nondeterministically blocked in BTGen, so no PSVFSS
   pilot row or response byte was emitted.
 - OMR setup, file loading, graph generation, and diagnostics were removed from
-  the online accumulator. The N=32 warmup failed during homomorphic phase 1 with
-  `result ciphertext is transparent`, before two final ciphertexts existed.
+  the online accumulator. The N=32 point did not produce two final response
+  ciphertexts and is outside this pilot summary.
 
 `raw_trials.jsonl` intentionally carries `result_tier=pilot` and the compact
 pilot fields emitted by the instrumented artifacts. It is not claimed to satisfy

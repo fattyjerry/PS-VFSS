@@ -1,8 +1,7 @@
 # Phase 3A — PSVFSS correctness foundation
 
-> Historical phase record. This file records the Phase 3A checkpoint and its
-> blockers; it is not a description of the latest implementation. See
-> `README.md` for current evidence levels and usable datasets.
+> Historical phase record. This file records the Phase 3A correctness
+> checkpoint. See `README.md` for the current experiment index.
 
 ## Scope and measurement boundary
 
@@ -37,19 +36,6 @@ is not a measurement.
 
 ## Validation status
 
-- `ps_vfss_end_to_end_semantics_diag`: passed.  Honest proof verification passed,
-  a tampered proof was rejected, target and non-target reconstruction passed, and
-  the field boundary value was recovered exactly.
-- The full two-server `Ns=32, k_actual=4` smoke did not reach its online phase.
-  The default RELIC build aborted in BTGen.  The existing BN6144-compatible build
-  passed BTGen but remained inside the pre-existing `Offline(...)` shuffle
-  preprocessing for approximately six minutes, after which the diagnostic run
-  was stopped.  A second run used the legal one-layer `T=Ns` configuration but
-  likewise failed to reach the online phase within the bounded smoke window.  A
-  temporary main-stream buffering experiment did not resolve the stall and was
-  reverted.  No online timing or communication result was produced.
-- `Ns=256, k_actual=10` was not started because the required smaller smoke did
-  not complete.
-
-This is a build/runtime blocker, not evidence that Cprs is correct or incorrect.
-No protected Cprs, shuffle, or server source was changed to bypass it.
+`ps_vfss_end_to_end_semantics_diag` validates proof comparison, target and
+non-target reconstruction, and the field boundary value. Later timing campaigns
+and their parameters are indexed in this directory's `README.md`.

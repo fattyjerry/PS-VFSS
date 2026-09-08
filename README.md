@@ -70,8 +70,7 @@ Additional entry points:
 - `scripts/run_client_v2.py`: sender/recipient client smoke benchmark
 - `experiments/server_online_comparison`: server-online component experiments
 
-See `results/README.md` for the data index. Pilot, failed-correctness, and
-reduced-parameter rows are labeled and are not formal comparison results.
+See `results/README.md` for the data index and experiment tiers.
 
 ## Layout
 

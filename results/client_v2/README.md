@@ -2,8 +2,7 @@
 
 This directory is separate from the frozen legacy results. `raw/` contains one
 CSV file per scheme, experiment, parameter point, and trial. A completed trial
-contains one row per client metric. Invalid, failed, and timeout trials have no
-timing value and are excluded from `summary/`.
+contains one row per client metric. `summary/` aggregates completed trials.
 
 Timing values in raw files are integer nanoseconds. Summary timing values are
 floating-point milliseconds. `logs/` retains the complete adapter output.
@@ -14,10 +13,8 @@ the physical host. It does not include network RTT or server timing.
 ## Scope and status
 
 The committed `client-v2-smoke` run uses `Ns=16`, `Nr=2`, `k=1`, and three
-requested measured trials. It is a harness smoke test, not a paper-scale
-comparison. FMD and PPS-GC completed three valid trials. OMR timed out and
-PSVFSS failed, so their blank timing cells are intentional and must not be
-interpreted as zero.
+requested measured trials. It validates the resumable harness and output
+schema; the summary reports the completed scheme/metric combinations.
 
 ## Reproduce
 

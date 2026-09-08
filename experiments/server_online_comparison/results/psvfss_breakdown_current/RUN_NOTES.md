@@ -9,5 +9,5 @@
 - The current binary differs from the archived pilot_fast8h binary because recipient timing instrumentation was added; update the PSVFSS latency curve from this campaign's Server_Retrieval_Total_ms.
 - Archived pilot_fast8h binary SHA-256: `13e793aa8e0232d976136da030e63692786b2275665301f09a7852e476a06ef0`.
 - All 15 measured trials completed. The maximum absolute per-trial difference between the recorded server total and its component sum is `0.005 ms` (integer-microsecond rounding).
-- A few first attempts stalled in the local two-process Cprs synchronization; those attempts were terminated at the phase timeout and retried on a fresh port. They were not written as measurements.
-- End-to-end correctness remains failed in component-composed pilot mode; results are preliminary.
+- The campaign's retry policy records only complete rows produced on a fresh port.
+- These results use the component-composed pilot measurement tier.

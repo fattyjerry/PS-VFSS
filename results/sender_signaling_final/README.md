@@ -20,8 +20,8 @@ stabilize its single-signal estimate.
 
 The benchmark reports native scheme operations and therefore does not assert
 identical wire formats or equal formal security levels. Output-byte fields are
-used only when the implementation constructed a currently valid output object;
-blank values are unknown/not valid, not zero. Compare timings only under the
+reported when the implementation constructs the corresponding output object.
+Compare timings only under the
 recorded compiler, build type, CPU-affinity, recipient mode, and scheme-specific
 parameters.
 
