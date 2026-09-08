@@ -7,21 +7,21 @@
 
 #include <emp-tool/emp-tool.h>
 
-void ShareTranslation(uint64_t *perm, int length, int party, HighSpeedNetIO *io, 
+void ShareTranslation(uint64_t *perm, int length, int party, NetIO *io, 
                       block *a, block *b, block *delta);
 
 void PermReconstruct(int d, uint64_t N, uint64_t T, int n, int t, uint64_t *perms, uint64_t *perm);
 
-void Offline(uint64_t N, uint64_t T, uint64_t *perms, uint64_t party, HighSpeedNetIO *io,
+void Offline(uint64_t N, uint64_t T, uint64_t *perms, uint64_t party, NetIO *io,
              uint64_t *perm, block *a, block *b, block *delta);
 
 void PermuteShare(uint64_t N, uint64_t T, 
                   uint64_t *perm, block *delta,
                   block *x, block *a, block *b,
-                  uint64_t party, HighSpeedNetIO *io, 
+                  uint64_t party, NetIO *io, 
                   block *out);
 
-void SecretSharedShuffle(uint64_t N, uint64_t T, uint64_t party, HighSpeedNetIO *io, 
+void SecretSharedShuffle(uint64_t N, uint64_t T, uint64_t party, NetIO *io, 
                          block *x, uint64_t *perm, block *delta, block *a, block *b,
                          block *out);
 

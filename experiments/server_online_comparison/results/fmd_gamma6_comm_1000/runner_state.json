@@ -1,0 +1,32 @@
+{
+  "completed_utc": "2026-08-26T10:06:28.623491+00:00",
+  "measured_completed": 1000,
+  "measured_target": 1000,
+  "started_utc": "2026-08-26T09:18:08.442464+00:00",
+  "status": "complete",
+  "summary": {
+    "N": 4096,
+    "candidate_max": 138,
+    "candidate_mean": 113.152,
+    "candidate_median": 113.0,
+    "candidate_min": 86,
+    "false_positive_max": 88,
+    "false_positive_mean": 63.152,
+    "false_positive_median": 63.0,
+    "false_positive_min": 36,
+    "gamma": 6,
+    "k_actual": 50,
+    "response_max_bytes": 1108,
+    "response_mean_bytes": 909.216,
+    "response_mean_ci95_high_bytes": 913.0716658129526,
+    "response_mean_ci95_low_bytes": 905.3603341870474,
+    "response_median_bytes": 908.0,
+    "response_min_bytes": 692,
+    "response_std_bytes": 62.2075809457909,
+    "theoretical_expected_false_positives": 63.21875,
+    "theoretical_expected_response_bytes": 909.75,
+    "trial_count": 1000
+  },
+  "warmup_completed": 5,
+  "warmup_target": 5
+}

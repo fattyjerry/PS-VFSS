@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ps-vfss.local/schemas/server-online-workload-1.0.0.json",
+  "title": "PS-VFSS Server Online Comparison Workload Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "workload_id",
+    "seed",
+    "Ns",
+    "Nr",
+    "target_recipient",
+    "k_actual",
+    "k_cap",
+    "logical_location_bytes",
+    "payload_bytes",
+    "match_positions",
+    "location_values",
+    "recipient_assignment",
+    "fmd_gamma",
+    "fmd_false_positive_rate",
+    "response_semantics",
+    "query_count"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "workload_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    },
+    "Ns": { "type": "integer", "minimum": 1 },
+    "Nr": { "type": "integer", "minimum": 1, "maximum": 65535 },
+    "target_recipient": { "type": "integer", "minimum": 0 },
+    "k_actual": { "type": "integer", "minimum": 0 },
+    "k_cap": { "type": "integer", "minimum": 1, "maximum": 65535 },
+    "logical_location_bytes": { "const": 8 },
+    "payload_bytes": {
+      "type": "integer",
+      "minimum": 8,
+      "description": "Primary workload uses 8; larger values identify a supplementary payload workload."
+    },
+    "match_positions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "location_values": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 18446744073709551615
+      }
+    },
+    "recipient_assignment": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "fmd_gamma": { "type": "integer", "minimum": 1, "maximum": 64 },
+    "fmd_false_positive_rate": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.5
+    },
+    "response_semantics": {
+      "enum": ["location_handles", "full_payload_supplementary"]
+    },
+    "query_count": { "const": 1 }
+  },
+  "$comment": "Draft 2020-12 cannot express cross-property array lengths or arithmetic portably. Readers MUST enforce: target_recipient < Nr; k_actual <= k_cap; match_positions.length == k_actual; location_values.length == recipient_assignment.length == Ns; every position < Ns; every recipient < Nr; exactly match_positions are assigned to target_recipient; and fmd_false_positive_rate == 2^-fmd_gamma. PPS-GC uses m=Nr and ell=k_cap; OMR uses kbar=k_cap."
+}
+

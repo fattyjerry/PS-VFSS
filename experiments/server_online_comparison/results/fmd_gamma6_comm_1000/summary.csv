@@ -1,0 +1,2 @@
+N,k_actual,gamma,trial_count,response_median_bytes,response_mean_bytes,response_std_bytes,response_mean_ci95_low_bytes,response_mean_ci95_high_bytes,response_min_bytes,response_max_bytes,candidate_median,candidate_mean,candidate_min,candidate_max,false_positive_median,false_positive_mean,false_positive_min,false_positive_max,theoretical_expected_false_positives,theoretical_expected_response_bytes
+4096,50,6,1000,908.0,909.216,62.2075809457909,905.3603341870474,913.0716658129526,692,1108,113.0,113.152,86,138,63.0,63.152,36,88,63.21875,909.75

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"os"
@@ -12,16 +14,23 @@ import (
 )
 
 type result struct {
-	scheme      string
-	n           int
-	ell         int
-	setupMS     int64
-	sendMS      int64
-	serverMS    int64
-	recipientMS int64
-	commBytes   int
-	status      string
-	bottleneck  string
+	scheme         string
+	n              int
+	ell            int
+	setupMS        int64
+	sendMS         int64
+	serverMS       int64
+	serializeUS    int64
+	recipientMS    int64
+	recipientConsumeNS float64
+	recipientInnerOps int
+	recipientConsumeOK bool
+	commBytes      int
+	candidates     int
+	trueHits       int
+	falsePositives int
+	status         string
+	bottleneck     string
 }
 
 func elapsedMS(start time.Time) int64 {
@@ -91,24 +100,64 @@ func run(n, ell, gamma int) result {
 	}
 	r.sendMS = elapsedMS(start)
 
-	candidates := make([]int, 0, ell)
+	candidates := make([]uint64, 0, ell)
 	start = time.Now()
 	for i, msg := range messages {
 		if scheme.Test(curve, msg, dsk) {
-			candidates = append(candidates, i)
+			candidates = append(candidates, uint64(i+1))
 		}
 	}
-	r.serverMS = elapsedMS(start)
+	r.serverMS = time.Since(start).Microseconds()
 
 	start = time.Now()
 	trueHits := 0
-	for _, idx := range candidates {
-		if idx < ell {
+	for _, location := range candidates {
+		if location <= uint64(ell) {
 			trueHits++
 		}
 	}
 	r.recipientMS += elapsedMS(start)
-	r.commBytes = len(candidates) * 8
+	serializeStart := time.Now()
+	var response bytes.Buffer
+	_ = binary.Write(&response, binary.LittleEndian, uint32(len(candidates)))
+	for _, location := range candidates {
+		_ = binary.Write(&response, binary.LittleEndian, location)
+	}
+	r.serializeUS = time.Since(serializeStart).Microseconds()
+	r.commBytes = response.Len()
+	const recipientInnerOps = 1000
+	responseBytes := response.Bytes()
+	var decoded []uint64
+	recipientStart := time.Now()
+	for op := 0; op < recipientInnerOps; op++ {
+		reader := bytes.NewReader(responseBytes)
+		var count uint32
+		if err := binary.Read(reader, binary.LittleEndian, &count); err != nil {
+			r.status = "crashed"
+			r.bottleneck = "recipient_count_decode_failed"
+			return r
+		}
+		decoded = make([]uint64, count)
+		if err := binary.Read(reader, binary.LittleEndian, &decoded); err != nil || reader.Len() != 0 {
+			r.status = "crashed"
+			r.bottleneck = "recipient_location_decode_failed"
+			return r
+		}
+	}
+	r.recipientConsumeNS = float64(time.Since(recipientStart).Nanoseconds()) / recipientInnerOps
+	r.recipientInnerOps = recipientInnerOps
+	r.recipientConsumeOK = len(decoded) == len(candidates)
+	if r.recipientConsumeOK {
+		for i := range decoded {
+			if decoded[i] != candidates[i] {
+				r.recipientConsumeOK = false
+				break
+			}
+		}
+	}
+	r.candidates = len(candidates)
+	r.trueHits = trueHits
+	r.falsePositives = len(candidates) - trueHits
 
 	if trueHits != ell {
 		r.status = "crashed"
@@ -133,17 +182,30 @@ func average(n, ell, gamma, reps int) result {
 		avg.sendMS += r.sendMS
 		avg.serverMS += r.serverMS
 		avg.recipientMS += r.recipientMS
+		avg.recipientConsumeNS += r.recipientConsumeNS
 		avg.commBytes += r.commBytes
+		avg.serializeUS += r.serializeUS
+		avg.candidates += r.candidates
+		avg.trueHits += r.trueHits
+		avg.falsePositives += r.falsePositives
 		if r.status != "completed" {
 			avg.status = r.status
 		}
+		avg.recipientConsumeOK = avg.recipientConsumeOK || i == 0
+		avg.recipientConsumeOK = avg.recipientConsumeOK && r.recipientConsumeOK
+		avg.recipientInnerOps = r.recipientInnerOps
 		lastBottleneck = r.bottleneck
 	}
 	avg.setupMS /= int64(reps)
 	avg.sendMS /= int64(reps)
 	avg.serverMS /= int64(reps)
 	avg.recipientMS /= int64(reps)
+	avg.recipientConsumeNS /= float64(reps)
 	avg.commBytes /= reps
+	avg.serializeUS /= int64(reps)
+	avg.candidates /= reps
+	avg.trueHits /= reps
+	avg.falsePositives /= reps
 	avg.bottleneck = fmt.Sprintf("%s_avg_reps=%d", lastBottleneck, reps)
 	return avg
 }
@@ -161,12 +223,19 @@ func printResult(r result) {
 		r.status,
 		r.bottleneck,
 	)
+	fmt.Printf("[PILOT_JSON] {\"scheme\":\"FMD\",\"N\":%d,\"k_actual\":%d,\"admission_status\":\"unsupported\",\"admission_online_ms\":null,\"retrieval_core_ms\":%.6f,\"response_serialization_ms\":%.6f,\"retrieval_online_ms\":%.6f,\"server0_response_bytes\":%d,\"server1_response_bytes\":null,\"server_to_recipient_bytes\":%d,\"candidate_count\":%d,\"true_match_count\":%d,\"false_positive_count\":%d,\"measurement_status\":\"%s\"}\n",
+		r.n, r.ell, float64(r.serverMS)/1000.0, float64(r.serializeUS)/1000.0,
+		float64(r.serverMS+r.serializeUS)/1000.0, r.commBytes, r.commBytes,
+		r.candidates, r.trueHits, r.falsePositives, r.status)
+	fmt.Printf("[RECIPIENT_JSON] {\"scheme\":\"FMD\",\"N\":%d,\"k_actual\":%d,\"candidate_count\":%d,\"response_bytes\":%d,\"recipient_processing_ns\":%.3f,\"recipient_inner_ops\":%d,\"correctness\":%t,\"consumer_operations\":\"deserialize_count_and_all_candidate_uint64_handles\"}\n",
+		r.n, r.ell, r.candidates, r.commBytes, r.recipientConsumeNS,
+		r.recipientInnerOps, r.recipientConsumeOK)
 }
 
 func main() {
 	n := flag.Int("N", 4096, "number of tested messages")
 	ell := flag.Int("ell", 50, "number of true positives")
-	gamma := flag.Int("gamma", 24, "FMD2 false-positive exponent")
+	gamma := flag.Int("gamma", 8, "FMD2 false-positive exponent")
 	reps := flag.Int("reps", 5, "number of repetitions to average")
 	all := flag.Bool("all", false, "run the paper benchmark N set")
 	flag.Parse()

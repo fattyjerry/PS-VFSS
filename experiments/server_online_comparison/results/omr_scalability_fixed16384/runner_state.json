@@ -1,0 +1,15 @@
+{
+  "binary_sha256": "39f080abd3d9a9383b7635ee002d73f3b753e2df57aefecb9422f44e55021682",
+  "completed": 0,
+  "heartbeat": {
+    "N": 256,
+    "elapsed_seconds": 120.087,
+    "task_key": "256:warmup:0:39f080abd3d9a9383b7635ee002d73f3b753e2df57aefecb9422f44e55021682",
+    "timestamp_utc": "2026-08-25T05:24:28.580521+00:00",
+    "trial_index": 0,
+    "trial_type": "warmup"
+  },
+  "started_or_resumed_utc": "2026-08-25T05:22:14.517592+00:00",
+  "status": "running",
+  "total": 28
+}

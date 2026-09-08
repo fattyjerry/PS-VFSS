@@ -3,4 +3,4 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${root}/baselines/pps-gc/pps-garbled-circuits"
-RUSTC_BOOTSTRAP=1 cargo +stable build --release --example unified-bench
+cargo +nightly-2021-05-06 build --locked --release --example unified-bench

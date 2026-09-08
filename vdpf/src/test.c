@@ -47,7 +47,7 @@ void testVDPF()
     // genVDPF(ctx, mmo_hash1, size, secretIndex, vk0, vk1);
     clock_t t;
     t = clock();
-    genVDPF(ctx, mmo_hash1, size, secretIndex, vk0, vk1);
+    genVDPF(ctx, mmo_hash1, size, secretIndex, 1, vk0, vk1);
     size_t vdpf_key_size = INDEX_LASTCW + 16 + 16 * outblocks;
     printf("VDPF key size: %zu bytes\n", vdpf_key_size);
     t = clock() - t;

@@ -1,0 +1,13 @@
+scheme,N_logical,N_physical,k_actual,admission_scope,admission_batch_online_ms,admission_per_signal_ms,retrieval_online_ms,critical_path_wall_ms,server_to_recipient_bytes,preprocessing_mode,measurement_status,notes
+PSVFSS,32,32,4,not_measured,,,,,,local_trusted_pilot,artifact_limited,field share-conversion blocker
+PSVFSS,64,64,4,not_measured,,,,,,local_trusted_pilot,artifact_limited,field share-conversion blocker
+PSVFSS,128,128,4,not_measured,,,,,,local_trusted_pilot,artifact_limited,field share-conversion blocker
+PPS-GC,32,32,4,batch_all_N_signals,7812.521,244.14128125,0.0,7812.521,264,artifact_native,ok,pilot; source=pilot/raw_trials.jsonl
+PPS-GC,64,64,4,batch_all_N_signals,29563.799,461.934359375,0.001,29563.8,264,artifact_native,ok,pilot; source=pilot/raw_trials.jsonl
+PPS-GC,128,128,4,batch_all_N_signals,117661.767,919.2325546875,0.001,117661.767,264,artifact_native,ok,pilot; source=pilot/raw_trials.jsonl
+FMD,32,32,4,unsupported,,,14.114,14.114,36,artifact_native,ok,pilot; source=pilot/raw_trials.jsonl
+FMD,64,64,4,unsupported,,,27.488,27.488,36-44,artifact_native,ok,pilot; source=pilot/raw_trials.jsonl
+FMD,128,128,4,unsupported,,,55.766,55.766,36-44,artifact_native,ok,pilot; source=pilot/raw_trials.jsonl
+OMR,32,32768,4,not_measured,,,,,,artifact_native,artifact_limited,timeout before final ciphertext response
+OMR,64,32768,4,not_measured,,,,,,artifact_native,artifact_limited,timeout before final ciphertext response
+OMR,128,32768,4,not_measured,,,,,,artifact_native,artifact_limited,timeout before final ciphertext response

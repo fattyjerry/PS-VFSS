@@ -1,0 +1,374 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ps-vfss.local/schemas/server-online-raw-trial-1.0.0.json",
+  "title": "PS-VFSS Server Online Comparison Raw JSONL Trial",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "workload_id", "scheme", "trial_index",
+    "is_warmup", "source_snapshot_id", "binary_sha256", "host_id",
+    "timestamp_utc", "Ns", "Nr", "target_recipient", "k_actual",
+    "k_cap", "logical_location_bytes", "payload_bytes", "security_parameter",
+    "scheme_parameters", "admission", "retrieval", "response", "correctness",
+    "measurement_status", "error_type", "error_message"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "run_id": { "$ref": "#/$defs/nonemptyString" },
+    "workload_id": { "$ref": "#/$defs/nonemptyString" },
+    "scheme": { "enum": ["PSVFSS", "PPS-GC", "FMD", "OMR"] },
+    "trial_index": { "type": "integer", "minimum": 0 },
+    "is_warmup": { "type": "boolean" },
+    "source_snapshot_id": { "$ref": "#/$defs/nonemptyString" },
+    "binary_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "host_id": { "$ref": "#/$defs/nonemptyString" },
+    "timestamp_utc": { "type": "string", "format": "date-time" },
+    "Ns": { "type": "integer", "minimum": 1 },
+    "Nr": { "type": "integer", "minimum": 1 },
+    "target_recipient": { "type": "integer", "minimum": 0 },
+    "k_actual": { "type": "integer", "minimum": 0 },
+    "k_cap": { "type": "integer", "minimum": 1 },
+    "logical_location_bytes": { "const": 8 },
+    "payload_bytes": { "type": "integer", "minimum": 8 },
+    "security_parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim", "comparability_limitation"],
+      "properties": {
+        "claim": { "type": ["string", "null"] },
+        "comparability_limitation": { "type": ["string", "null"] }
+      }
+    },
+    "scheme_parameters": {
+      "type": "object",
+      "description": "The scheme conditional below selects a closed parameter object."
+    },
+    "admission": { "$ref": "#/$defs/admission" },
+    "retrieval": { "$ref": "#/$defs/retrieval" },
+    "response": { "$ref": "#/$defs/response" },
+    "correctness": { "$ref": "#/$defs/correctness" },
+    "server_online_total_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+    "measurement_status": {
+      "enum": ["ok", "not_implemented", "unsupported", "error", "invalid", "incomplete"]
+    },
+    "error_type": { "type": ["string", "null"] },
+    "error_message": { "type": ["string", "null"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "measurement_status": { "const": "ok" } }, "required": ["measurement_status"] },
+      "then": {
+        "properties": {
+          "correctness": {
+            "properties": { "correctness_ok": { "const": true } },
+            "required": ["correctness_ok"]
+          },
+          "error_type": { "type": "null" },
+          "error_message": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "admission": { "properties": { "status": { "const": "ok" } }, "required": ["status"] },
+          "retrieval": { "properties": { "status": { "const": "ok" } }, "required": ["status"] }
+        },
+        "required": ["admission", "retrieval"]
+      },
+      "then": { "properties": { "server_online_total_ms": { "$ref": "#/$defs/nonnegativeNumber" } } },
+      "else": { "not": { "required": ["server_online_total_ms"] } }
+    },
+    {
+      "if": { "properties": { "scheme": { "const": "FMD" } }, "required": ["scheme"] },
+      "then": {
+        "properties": { "scheme_parameters": { "$ref": "#/$defs/fmdParameters" } }
+      },
+      "else": {
+        "properties": {
+          "response": {
+            "properties": { "false_positive_count": { "type": "null" } },
+            "required": ["false_positive_count"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scheme": { "const": "FMD" },
+          "response": { "properties": { "status": { "const": "ok" } }, "required": ["status"] }
+        },
+        "required": ["scheme", "response"]
+      },
+      "then": {
+        "properties": {
+          "response": {
+            "properties": {
+              "candidate_count": { "type": "integer", "minimum": 0 },
+              "false_positive_count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "scheme": { "const": "PSVFSS" } }, "required": ["scheme"] },
+      "then": { "properties": { "scheme_parameters": { "$ref": "#/$defs/psvfssParameters" } } }
+    },
+    {
+      "if": { "properties": { "scheme": { "const": "PPS-GC" } }, "required": ["scheme"] },
+      "then": { "properties": { "scheme_parameters": { "$ref": "#/$defs/ppsgcParameters" } } }
+    },
+    {
+      "if": { "properties": { "scheme": { "const": "OMR" } }, "required": ["scheme"] },
+      "then": { "properties": { "scheme_parameters": { "$ref": "#/$defs/omrParameters" } } }
+    }
+  ],
+  "$defs": {
+    "nonemptyString": { "type": "string", "minLength": 1 },
+    "nonnegativeNumber": { "type": "number", "minimum": 0 },
+    "nullableNonnegativeNumber": { "type": ["number", "null"], "minimum": 0 },
+    "nullableNonnegativeInteger": { "type": ["integer", "null"], "minimum": 0 },
+    "phaseStatus": { "enum": ["ok", "not_implemented", "unsupported", "error"] },
+    "psvfssParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vdpf_domain_bits", "field_modulus", "declared_security_bits", "shuffle_T", "compression_contract"],
+      "properties": {
+        "vdpf_domain_bits": { "type": "integer", "minimum": 1 },
+        "field_modulus": { "const": "2^61-1" },
+        "declared_security_bits": { "type": "integer", "minimum": 1 },
+        "shuffle_T": { "type": "integer", "minimum": 2 },
+        "compression_contract": { "enum": ["unresolved", "paper_confirmed"] }
+      }
+    },
+    "ppsgcParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["m", "ell", "location_share_bytes", "block_security_bits", "batch_size"],
+      "properties": {
+        "m": { "type": "integer", "minimum": 1 },
+        "ell": { "type": "integer", "minimum": 1 },
+        "location_share_bytes": { "type": "integer", "minimum": 1 },
+        "block_security_bits": { "type": "integer", "minimum": 1 },
+        "batch_size": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "fmdParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["curve", "gamma", "false_positive_rate"],
+      "properties": {
+        "curve": { "const": "P-256" },
+        "gamma": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "false_positive_rate": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.5 }
+      }
+    },
+    "omrParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pvw_n", "pvw_q", "pvw_stddev", "pvw_m", "pvw_ell", "kbar",
+        "threads", "poly_modulus_degree", "seal_security_level", "payload_mode"
+      ],
+      "properties": {
+        "pvw_n": { "type": "integer", "minimum": 1 },
+        "pvw_q": { "type": "integer", "minimum": 2 },
+        "pvw_stddev": { "type": "number", "exclusiveMinimum": 0 },
+        "pvw_m": { "type": "integer", "minimum": 1 },
+        "pvw_ell": { "type": "integer", "minimum": 1 },
+        "kbar": { "type": "integer", "minimum": 1 },
+        "threads": { "type": "integer", "minimum": 1 },
+        "poly_modulus_degree": { "type": "integer", "minimum": 1 },
+        "seal_security_level": { "const": "none" },
+        "payload_mode": { "enum": ["location_handle", "full_payload_supplementary"] }
+      }
+    },
+    "perServerCpu": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["server_id", "cpu_ms"],
+        "properties": {
+          "server_id": { "$ref": "#/$defs/nonemptyString" },
+          "cpu_ms": { "$ref": "#/$defs/nonnegativeNumber" }
+        }
+      }
+    },
+    "perServerBytes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["server_id", "bytes"],
+        "properties": {
+          "server_id": { "$ref": "#/$defs/nonemptyString" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status", "critical_path_wall_ms", "server_cpu_ms_sum",
+        "per_server_cpu_ms", "inter_server_bytes", "signals_processed"
+      ],
+      "properties": {
+        "status": { "$ref": "#/$defs/phaseStatus" },
+        "critical_path_wall_ms": { "$ref": "#/$defs/nullableNonnegativeNumber" },
+        "server_cpu_ms_sum": { "$ref": "#/$defs/nullableNonnegativeNumber" },
+        "per_server_cpu_ms": { "oneOf": [{ "$ref": "#/$defs/perServerCpu" }, { "type": "null" }] },
+        "inter_server_bytes": { "$ref": "#/$defs/nullableNonnegativeInteger" },
+        "signals_processed": { "$ref": "#/$defs/nullableNonnegativeInteger" }
+      },
+      "allOf": [{
+        "if": { "properties": { "status": { "const": "ok" } }, "required": ["status"] },
+        "then": {
+          "properties": {
+            "critical_path_wall_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+            "server_cpu_ms_sum": { "$ref": "#/$defs/nonnegativeNumber" },
+            "per_server_cpu_ms": { "$ref": "#/$defs/perServerCpu" },
+            "inter_server_bytes": { "type": "integer", "minimum": 0 },
+            "signals_processed": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "else": {
+          "properties": {
+            "critical_path_wall_ms": { "type": "null" },
+            "server_cpu_ms_sum": { "type": "null" },
+            "per_server_cpu_ms": { "type": "null" },
+            "inter_server_bytes": { "type": "null" },
+            "signals_processed": { "type": "null" }
+          }
+        }
+      }]
+    },
+    "retrieval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status", "retrieval_core_wall_ms", "response_serialize_wall_ms",
+        "retrieval_online_wall_ms", "server_cpu_ms_sum", "per_server_cpu_ms",
+        "inter_server_bytes"
+      ],
+      "properties": {
+        "status": { "$ref": "#/$defs/phaseStatus" },
+        "retrieval_core_wall_ms": { "$ref": "#/$defs/nullableNonnegativeNumber" },
+        "response_serialize_wall_ms": { "$ref": "#/$defs/nullableNonnegativeNumber" },
+        "retrieval_online_wall_ms": { "$ref": "#/$defs/nullableNonnegativeNumber" },
+        "server_cpu_ms_sum": { "$ref": "#/$defs/nullableNonnegativeNumber" },
+        "per_server_cpu_ms": { "oneOf": [{ "$ref": "#/$defs/perServerCpu" }, { "type": "null" }] },
+        "inter_server_bytes": { "$ref": "#/$defs/nullableNonnegativeInteger" }
+      },
+      "allOf": [{
+        "if": { "properties": { "status": { "const": "ok" } }, "required": ["status"] },
+        "then": {
+          "properties": {
+            "retrieval_core_wall_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+            "response_serialize_wall_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+            "retrieval_online_wall_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+            "server_cpu_ms_sum": { "$ref": "#/$defs/nonnegativeNumber" },
+            "per_server_cpu_ms": { "$ref": "#/$defs/perServerCpu" },
+            "inter_server_bytes": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "else": {
+          "properties": {
+            "retrieval_core_wall_ms": { "type": "null" },
+            "response_serialize_wall_ms": { "type": "null" },
+            "retrieval_online_wall_ms": { "type": "null" },
+            "server_cpu_ms_sum": { "type": "null" },
+            "per_server_cpu_ms": { "type": "null" },
+            "inter_server_bytes": { "type": "null" }
+          }
+        }
+      }]
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status", "semantics", "encoding_source", "server_to_recipient_bytes",
+        "per_server_bytes", "response_object_count", "candidate_count",
+        "false_positive_count", "payload_download_bytes", "end_to_end_bytes"
+      ],
+      "properties": {
+        "status": { "enum": ["ok", "unresolved", "not_implemented", "unsupported", "error"] },
+        "semantics": { "enum": ["location_handles", "full_payload_supplementary", "unresolved"] },
+        "encoding_source": { "enum": ["artifact_native", "benchmark_defined", "unresolved"] },
+        "server_to_recipient_bytes": { "$ref": "#/$defs/nullableNonnegativeInteger" },
+        "per_server_bytes": { "oneOf": [{ "$ref": "#/$defs/perServerBytes" }, { "type": "null" }] },
+        "response_object_count": { "$ref": "#/$defs/nullableNonnegativeInteger" },
+        "candidate_count": { "$ref": "#/$defs/nullableNonnegativeInteger" },
+        "false_positive_count": { "$ref": "#/$defs/nullableNonnegativeInteger" },
+        "payload_download_bytes": { "$ref": "#/$defs/nullableNonnegativeInteger" },
+        "end_to_end_bytes": { "$ref": "#/$defs/nullableNonnegativeInteger" }
+      },
+      "allOf": [{
+        "if": { "properties": { "status": { "const": "ok" } }, "required": ["status"] },
+        "then": {
+          "properties": {
+            "server_to_recipient_bytes": { "type": "integer", "minimum": 0 },
+            "per_server_bytes": { "$ref": "#/$defs/perServerBytes" },
+            "response_object_count": { "type": "integer", "minimum": 0 },
+            "payload_download_bytes": { "type": "integer", "minimum": 0 },
+            "end_to_end_bytes": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "else": {
+          "properties": {
+            "server_to_recipient_bytes": { "type": "null" },
+            "per_server_bytes": { "type": "null" },
+            "response_object_count": { "type": "null" },
+            "candidate_count": { "type": "null" },
+            "false_positive_count": { "type": "null" },
+            "payload_download_bytes": { "type": "null" },
+            "end_to_end_bytes": { "type": "null" }
+          }
+        }
+      }]
+    },
+    "locationEvidence": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["count", "sha256"],
+          "properties": {
+            "count": { "type": "integer", "minimum": 0 },
+            "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        }
+      ]
+    },
+    "correctness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correctness_ok", "expected_locations", "recovered_locations",
+        "missing_locations", "unexpected_locations", "failure_reason"
+      ],
+      "properties": {
+        "correctness_ok": { "type": "boolean" },
+        "expected_locations": { "$ref": "#/$defs/locationEvidence" },
+        "recovered_locations": { "$ref": "#/$defs/locationEvidence" },
+        "missing_locations": { "$ref": "#/$defs/locationEvidence" },
+        "unexpected_locations": { "$ref": "#/$defs/locationEvidence" },
+        "failure_reason": { "type": ["string", "null"] }
+      },
+      "allOf": [{
+        "if": { "properties": { "correctness_ok": { "const": true } }, "required": ["correctness_ok"] },
+        "then": { "properties": { "failure_reason": { "type": "null" } } },
+        "else": { "properties": { "failure_reason": { "type": "string", "minLength": 1 } } }
+      }]
+    }
+  },
+  "$comment": "Raw rows contain no aggregates. Runtime validation additionally checks target_recipient < Nr, k_actual <= k_cap, signals_processed == Ns for successful admission, per-server sums/byte sums, end_to_end_bytes == server_to_recipient_bytes + payload_download_bytes, and exact/hash correctness evidence consistency."
+}

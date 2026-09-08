@@ -1,0 +1,2 @@
+scheme,operation,sample_count,inner_ops,mean_ns,median_ns,std_ns,cv,ci95_low_ns,ci95_high_ns,relative_ci_half_width,min_ns,p25_ns,p75_ns,p95_ns,p99_ns,max_ns,output_bytes_if_currently_valid
+FMD,fmd_flag_generation,1500,1,488536.676,396013.0,176340.02882437917,0.3609555586864049,479612.6392665543,497460.71273344563,0.018266871602175615,348175,373687,532603,859389,943412,1125002,271

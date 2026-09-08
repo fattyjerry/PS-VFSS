@@ -1,0 +1,15 @@
+timestamp,scheme,experiment,operation,role,trial,warmup,message_size_bytes,recipient_input_size,scheme_specific_parameters,wall_time_ns,output_bytes,output_bytes_status,status,git_commit,compiler,compiler_version,build_type,machine_id
+2026-08-19T13:21:04.086165338Z,FMD,sender_signaling,fmd_flag_generation,sender,0,true,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,452704,271,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.090325884Z,FMD,sender_signaling,fmd_sender_total_signaling,sender,0,true,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,1028197,270,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.092799601Z,FMD,sender_signaling,fmd_flag_generation,sender,1,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,451566,269,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.093952283Z,FMD,sender_signaling,fmd_sender_preparation,sender,1,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,-1,,not_applicable,not_applicable,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.095053138Z,FMD,sender_signaling,message_encryption,sender,1,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,-1,,not_applicable,not_applicable,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.097280974Z,FMD,sender_signaling,fmd_sender_total_signaling,sender,1,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,685807,271,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.099646612Z,FMD,sender_signaling,fmd_flag_generation,sender,2,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,373660,268,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.100730085Z,FMD,sender_signaling,fmd_sender_preparation,sender,2,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,-1,,not_applicable,not_applicable,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.101879429Z,FMD,sender_signaling,message_encryption,sender,2,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,-1,,not_applicable,not_applicable,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.104327565Z,FMD,sender_signaling,fmd_sender_total_signaling,sender,2,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,566850,268,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.106891342Z,FMD,sender_signaling,fmd_flag_generation,sender,3,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,375891,269,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.107997527Z,FMD,sender_signaling,fmd_sender_preparation,sender,3,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,-1,,not_applicable,not_applicable,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.10926823Z,FMD,sender_signaling,message_encryption,sender,3,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,-1,,not_applicable,not_applicable,unavailable,gc,go1.18.1,Release,JerryZ
+2026-08-19T13:21:04.112329639Z,FMD,sender_signaling,fmd_sender_total_signaling,sender,3,false,not_applicable,unclear,gamma=8;p=2^-8;curve=P-256,915025,270,measured,ok,unavailable,gc,go1.18.1,Release,JerryZ

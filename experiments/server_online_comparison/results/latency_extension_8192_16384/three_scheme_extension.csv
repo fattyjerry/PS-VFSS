@@ -1,0 +1,7 @@
+scheme,N_logical,N_physical,k_actual,trial_count,admission_batch_median_ms,retrieval_median_ms,retrieval_min_ms,retrieval_max_ms,server_online_total_median_ms,measurement_quality,correctness_status,parameter_mode
+PSVFSS,8192,8192,50,3,32.560,5585.550,5545.660,5743.750,5617.988,component_composed_pilot,failed,local_trusted_pilot
+PSVFSS,16384,16384,50,3,54.027,11811.800,11003.200,12351.900,11863.324,component_composed_pilot,failed,local_trusted_pilot
+FMD,8192,8192,50,3,,6107.166,6085.516,6119.296,6107.166,end_to_end_pilot,passed,gamma_16
+FMD,16384,16384,50,3,,12541.628,12175.199,12613.957,12541.628,end_to_end_pilot,passed,gamma_16
+OMR,8192,16384,50,1,,971604.000,971604.000,971604.000,971604.000,reduced_parameter_pilot,failed,poly_modulus_degree_16384
+OMR,16384,16384,50,1,,983429.000,983429.000,983429.000,983429.000,reduced_parameter_pilot,failed,poly_modulus_degree_16384

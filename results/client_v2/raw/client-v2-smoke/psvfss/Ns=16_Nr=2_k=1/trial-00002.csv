@@ -1,0 +1,2 @@
+run_id,experiment_id,parameter_point_id,trial_id,trial_kind,scheme,phase,protocol_role,operation,host_id,host_class,Ns,Nr,actual_k,observed_result_count,false_positive_count,scheme_specific_parameters,metric_name,value,unit,status,correctness,output_type,error_class,timestamp_utc
+client-v2-smoke,client-side-smoke,Ns=16_Nr=2_k=1,2,measured,PSVFSS,client,,trial,JerryZ,local-development,16,,1,,,,,,ns,failed,,,runner_exit_1_missing_payload,2026-08-19T02:57:08.173251+00:00

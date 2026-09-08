@@ -15,9 +15,9 @@ void PrepareCorrelation(int cur_depth, int depth, block seed, block *str0, block
   PrepareCorrelation(cur_depth + 1, depth, next_seeds[1], str0, str1);
 }
 
-void OblivSetup(uint64_t length, uint64_t x, int party, HighSpeedNetIO *io, block **seeds) {
+void OblivSetup(uint64_t length, uint64_t x, int party, NetIO *io, block **seeds) {
   int depth = int(log2(length));
-  IKNP<HighSpeedNetIO> *ote = new IKNP<HighSpeedNetIO>(io);
+  IKNP<NetIO> *ote = new IKNP<NetIO>(io);
   if (party == ALICE) {
     *seeds = (block *)malloc(1 * sizeof(block));
 

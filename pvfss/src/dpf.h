@@ -20,14 +20,6 @@
 #include <memory>
 #include <vector>
 
-constexpr size_t kVDPFProofBytes = 32;
-using VDPFProof = std::array<uint8_t, kVDPFProofBytes>;
-
-struct VDPFEvaluation {
-  std::vector<uint64_t> outputs;
-  VDPFProof proof{};
-};
-
 // TODO: support template like template <typename GroupEle>
 struct DPFKey {
   osuCrypto::block s;
@@ -38,6 +30,23 @@ struct DPFKey {
   unsigned char *vdpf_key;
   size_t vdpf_key_len;
 };
+
+constexpr std::size_t kVDPFProofBytes = 32;
+using VDPFProof = std::array<uint8_t, kVDPFProofBytes>;
+
+struct VDPFEvaluation {
+  std::vector<uint64_t> outputs;
+  VDPFProof proof{};
+};
+
+struct DPFEvaluation {
+  uint64_t value;
+  std::array<uint8_t, kVDPFProofBytes> proof;
+};
+
+bool VerifyVDPFProofs(
+    const std::array<uint8_t, kVDPFProofBytes> &server0,
+    const std::array<uint8_t, kVDPFProofBytes> &server1);
 
 // TODO: support Group Element template
 // !only support two parties
@@ -56,14 +65,21 @@ public:
 
   uint64_t Eval(uint8_t b, DPFKey key, uint64_t input);
 
+  // The bundled VDPF emits a 32-byte verification value for each evaluated
+  // input batch.  The two servers verify an evaluation by comparing these
+  // values byte-for-byte, as in vdpf/src/test.c.
+  DPFEvaluation EvalWithProof(uint8_t b, DPFKey key, uint64_t input);
+
+  std::array<uint8_t, kVDPFProofBytes> BatchEvalProof(
+      uint8_t b, DPFKey key, const std::vector<uint64_t> &inputs);
+
+  // Compatibility API used by admission-time verification.  It returns the
+  // same batch outputs and proof produced by the bundled VDPF evaluator.
   VDPFEvaluation VerEval(
-      uint8_t b,
-      const DPFKey &key,
-      const std::vector<uint64_t> &inputs);
+      uint8_t b, const DPFKey &key, const std::vector<uint64_t> &inputs);
 
   static bool VerifyProofs(
-      const VDPFProof &proof0,
-      const VDPFProof &proof1);
+      const VDPFProof &proof0, const VDPFProof &proof1);
 
   size_t ExpectedKeySize() const;
 

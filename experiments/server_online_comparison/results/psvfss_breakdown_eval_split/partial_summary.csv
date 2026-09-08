@@ -1,0 +1,5 @@
+Ns,k,complete_measured_trials,Signal_Verification_median_ms,Eval_median_ms,Retrieval_Proof_Check_median_ms,Eval_And_Proof_Check_median_ms,Shuffle_median_ms,Cprs_median_ms,Serialization_median_ms,Server_Retrieval_Total_median_ms,status,notes
+256,50,3,2.627000,0.687000,0.273000,0.960000,0.245000,206.891000,0.002000,208.047000,ok,complete_trials
+1024,50,3,4.723000,3.033000,0.358000,3.396000,0.573000,810.879000,0.002000,814.925000,ok,complete_trials
+4096,50,3,17.418000,11.755000,0.545000,12.474000,0.579000,2990.640000,0.001000,3003.830000,ok,complete_trials
+16384,50,0,,,,,,,,,cprs_timeout,Eval completed in each bounded probe but no complete trial; do not use as a full breakdown row

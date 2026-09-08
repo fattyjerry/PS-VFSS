@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument("--binary", default="pps-garbled-circuits/target/release/examples/unified-bench")
     parser.add_argument("--ell", type=int, default=50)
     parser.add_argument("--ns", default=",".join(str(n) for n in DEFAULT_NS))
-    parser.add_argument("--per-n-limit-sec", type=int, default=2 * 60 * 60)
+    parser.add_argument("--per-n-limit-sec", type=int, default=int(2.5 * 60 * 60))
     return parser.parse_args()
 
 

@@ -1,0 +1,13 @@
+scheme,N_logical,N_physical,k_actual,trial_count,admission_batch_online_ms,admission_per_signal_ms,retrieval_online_ms,server_to_recipient_bytes,measurement_quality,correctness_status,parameter_or_preprocessing_mode,notes
+PSVFSS,32,32,4,3,0.682,0.0213125,24.726,72,component_composed_pilot,failed,local_trusted_pilot,"actual response range=72-72 bytes; component-composed, not end-to-end correct"
+PSVFSS,64,64,4,3,1.187,0.018546875,42.839,72,component_composed_pilot,failed,local_trusted_pilot,"actual response range=72-72 bytes; component-composed, not end-to-end correct"
+PSVFSS,128,128,4,3,1.652,0.01290625,104.078,72,component_composed_pilot,failed,local_trusted_pilot,"actual response range=72-72 bytes; component-composed, not end-to-end correct"
+PPS-GC,32,32,4,3,7812.521,244.14128125,0.0,264,end_to_end_pilot,not_recorded,artifact_native,actual response range=264-264 bytes
+PPS-GC,64,64,4,3,29563.799,461.934359375,0.001,264,end_to_end_pilot,not_recorded,artifact_native,actual response range=264-264 bytes
+PPS-GC,128,128,4,3,117661.767,919.2325546875,0.001,264,end_to_end_pilot,not_recorded,artifact_native,actual response range=264-264 bytes
+FMD,32,32,4,3,,,14.114,36,end_to_end_pilot,not_recorded,artifact_native,actual response range=36-36 bytes
+FMD,64,64,4,3,,,27.488,36,end_to_end_pilot,not_recorded,artifact_native,actual response range=36-44 bytes
+FMD,128,128,4,3,,,55.766,44,end_to_end_pilot,not_recorded,artifact_native,actual response range=36-44 bytes
+OMR,32,4096,4,3,,,108639,74294,reduced_parameter_pilot,failed,bfv_degree_4096_sec_level_none,"actual response range=74228-74299 bytes; BFV degree/slots=4096, sec_level=none, recipient check failed"
+OMR,64,4096,4,3,,,110013,74285,reduced_parameter_pilot,failed,bfv_degree_4096_sec_level_none,"actual response range=74261-74296 bytes; BFV degree/slots=4096, sec_level=none, recipient check failed"
+OMR,128,4096,4,3,,,106401,74272,reduced_parameter_pilot,failed,bfv_degree_4096_sec_level_none,"actual response range=74271-74293 bytes; BFV degree/slots=4096, sec_level=none, recipient check failed"

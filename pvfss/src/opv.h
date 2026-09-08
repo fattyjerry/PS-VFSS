@@ -19,7 +19,7 @@ using namespace emp;
  * @param party: party
  * @param seeds: outputed seeds
  */
-void OblivSetup(uint64_t length, uint64_t x, int party, HighSpeedNetIO *io, block **seeds);
+void OblivSetup(uint64_t length, uint64_t x, int party, NetIO *io, block **seeds);
 
 void Expand(uint64_t length, uint64_t x, block *seeds, int party, block *v);
 

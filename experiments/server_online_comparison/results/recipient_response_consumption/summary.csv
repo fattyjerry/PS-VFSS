@@ -1,0 +1,5 @@
+scheme,N,k_actual,independent_trials,inner_ops_per_trial,recipient_processing_median_ms,recipient_processing_min_ms,recipient_processing_max_ms,server_to_recipient_bytes,correctness,measurement_quality,notes
+PSVFSS,4096,50,3,1000,0.000293605,0.000242589,0.000304775,808,False,component_composed_pilot,actual serialized buffer consumption
+PPS-GC,4096,50,3,10000,0.000607287,0.000599230,0.000613640,3208,True,response_only_component_pilot,actual serialized buffer consumption
+FMD,4096,50,3,1000,0.000443082,0.000417270,0.000657618,404,True,end_to_end_pilot,actual serialized buffer consumption
+OMR,4096,50,1,3,23.641821000,23.411984000,23.680678000,74263,False,reduced_parameter_pilot,actual serialized buffer consumption; OMR includes Ciphertext::load/decrypt/decode

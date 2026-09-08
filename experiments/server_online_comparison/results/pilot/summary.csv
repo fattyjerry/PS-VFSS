@@ -1,0 +1,9 @@
+scheme,N,k_actual,trial_count,admission_online_median_ms,retrieval_online_median_ms,critical_path_median_ms,server_to_recipient_bytes,candidate_count,false_positive_count,measurement_status,notes
+PSVFSS,32,4,0,,,,,,,artifact_limited,"Ns=2 passed; Ns=4 BTGen timeout; compressed-share response not implemented"
+FMD,32,4,3,,14.114,14.114,36,4,0,ok,"admission unsupported; gamma=8"
+FMD,64,4,3,,27.488,27.488,"36-44",4,0,ok,"one trial had one false positive; bytes are per-trial"
+FMD,128,4,3,,55.766,55.766,"36-44",5,1,ok,"median candidates/false positives; bytes are per-trial"
+PPS-GC,32,4,3,7812.521,0.000,7812.521,264,,,ok,"m=8,l=4; retrieval below/near microsecond resolution"
+PPS-GC,64,4,3,29563.799,0.001,29563.800,264,,,ok,"m=16,l=4"
+PPS-GC,128,4,3,117661.767,0.001,117661.767,264,,,ok,"m=32,l=4"
+OMR,32,4,0,,,,,,,artifact_limited,"warmup failed: transparent ciphertext before final response"

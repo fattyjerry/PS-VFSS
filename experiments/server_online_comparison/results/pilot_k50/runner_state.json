@@ -1,0 +1,22 @@
+{
+  "campaign_start_epoch": 1787382812.1928627,
+  "completed": {},
+  "current": null,
+  "heartbeat": {
+    "pilot_v4_completed": 68,
+    "pilot_v4_current": {
+      "N": 1024,
+      "binary_sha256": "7482348a1b78843736fd4215e5037a0935dfac0f2a64a0d2acf0650c17081b6e",
+      "k_actual": 4,
+      "measurement_mode": "end_to_end_pilot",
+      "scheme": "PPS-GC",
+      "trial_index": 0,
+      "trial_timeout_seconds": 9000,
+      "trial_type": "warmup"
+    },
+    "status": "waiting_for_pilot_v4",
+    "timestamp_utc": "2026-08-22T07:18:55.686449+00:00"
+  },
+  "status": "stopped_by_user_for_8h_fast_plan",
+  "stopped_utc": "2026-08-22T07:19:26.562940+00:00"
+}

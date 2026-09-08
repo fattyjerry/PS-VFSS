@@ -1,4 +1,5 @@
 #include "admission.h"
+#include "../../vdpf/include/field61.h"
 
 #include <array>
 #include <cstdint>
@@ -36,8 +37,8 @@ void CheckHonestOutputs(
           server1.outputs().size() == identifiers.size(),
       "VerEval returned an unexpected output length");
   for (size_t i = 0; i < identifiers.size(); ++i) {
-    const uint64_t reconstructed =
-        server0.outputs()[i] ^ server1.outputs()[i];
+    const uint64_t reconstructed = field61_add(
+        server0.outputs()[i], server1.outputs()[i]);
     const uint64_t expected = identifiers[i] == alpha ? 1 : 0;
     Expect(
         reconstructed == expected,

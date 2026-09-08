@@ -1,0 +1,9 @@
+run_id,scheme,parameter_point_id,metric_name,valid_trials,mean_ms,median_ms,std_ms,cv,ci95_low_ms,ci95_high_ms,min_ms,max_ms
+client-v2-smoke-probe,FMD,Ns=16_Nr=2_k=1,recipient_processing_ns,1,0.000175,0.000175,0.0,0.0,0.000175,0.000175,0.000175,0.000175
+client-v2-smoke-probe,FMD,Ns=16_Nr=2_k=1,sender_serialization_ns,1,0.012977,0.012977,0.0,0.0,0.012977,0.012977,0.012977,0.012977
+client-v2-smoke-probe,FMD,Ns=16_Nr=2_k=1,sender_signaling_generation_ns,1,8.87188,8.87188,0.0,0.0,8.87188,8.87188,8.87188,8.87188
+client-v2-smoke-probe,FMD,Ns=16_Nr=2_k=1,sender_total_online_ns,1,8.885233,8.885233,0.0,0.0,8.885233,8.885233,8.885233,8.885233
+client-v2-smoke-probe,PPS-GC,Ns=16_Nr=2_k=1,recipient_processing_ns,1,6.4e-05,6.4e-05,0.0,0.0,6.4e-05,6.4e-05,6.4e-05,6.4e-05
+client-v2-smoke-probe,PPS-GC,Ns=16_Nr=2_k=1,sender_serialization_ns,1,0.000129,0.000129,0.0,0.0,0.000129,0.000129,0.000129,0.000129
+client-v2-smoke-probe,PPS-GC,Ns=16_Nr=2_k=1,sender_signaling_generation_ns,1,0.004031,0.004031,0.0,0.0,0.004031,0.004031,0.004031,0.004031
+client-v2-smoke-probe,PPS-GC,Ns=16_Nr=2_k=1,sender_total_online_ns,1,0.00427,0.00427,0.0,0.0,0.00427,0.00427,0.00427,0.00427

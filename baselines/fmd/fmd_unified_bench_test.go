@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	unifiedFMDGamma = 24
+	unifiedFMDGamma = 8
 	unifiedFMDEll   = 50
 	unifiedFMDReps  = 5
 )

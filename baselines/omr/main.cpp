@@ -17,6 +17,8 @@ struct BenchmarkOptions {
     int threads = 1;
     int requestedN = 0;
     size_t kbar = 0;
+    size_t polyModulusDegree = 0;
+    int recipientBenchReps = 3;
 };
 
 struct BenchmarkResult {
@@ -27,12 +29,29 @@ struct BenchmarkResult {
     double setupTimeMs = 0;
     double sendTimeMs = 0;
     double serverTimeMs = 0;
+    double responseSerializationMs = 0;
     double recipientTimeMs = 0;
+    double recipientMinMs = 0;
+    double recipientMaxMs = 0;
+    int recipientBenchReps = 0;
+    double ciphertextLoadMs = 0;
+    double decryptTimeMs = 0;
+    double decodeTimeMs = 0;
     double totalTimeMs = 0;
     size_t digestSizeBytes = 0;
+    size_t ciphertext0Bytes = 0;
+    size_t ciphertext1Bytes = 0;
     size_t detectionKeySizeBytes = 0;
     bool correct = false;
+    uint64_t senderSignalingGenerationNs = 0;
+    uint64_t senderSerializationNs = 0;
+    bool clueCorrect = true;
+    size_t observedResultCount = 0;
 };
+
+uint64_t clientSenderSignalingGenerationNs = 0;
+uint64_t clientSenderSerializationNs = 0;
+bool clientClueCorrect = true;
 
 int paddedTransactionCount(int requestedN, int threads, size_t degree) {
     int batch = int(degree) * threads;
@@ -41,7 +60,7 @@ int paddedTransactionCount(int requestedN, int threads, size_t degree) {
 
 vector<vector<uint64_t>> preparinngTransactionsFormal(PVWpk& pk, 
                                                     int numOfTransactions, int pertinentMsgNum, const PVWParam& params, bool formultitest = false,
-                                                    int pertinentSelectionUpperBound = -1){
+                                                    int pertinentSelectionUpperBound = -1, const PVWsk* intendedSk = nullptr){
     srand (time(NULL));
 
     vector<int> msgs(numOfTransactions);
@@ -62,9 +81,16 @@ vector<vector<uint64_t>> preparinngTransactionsFormal(PVWpk& pk,
 
     for(int i = 0; i < numOfTransactions; i++){
         PVWCiphertext tempclue;
+        auto signaling_start = chrono::steady_clock::now();
         if(msgs[i]){
             cout << i << " ";
             PVWEncPK(tempclue, zeros, pk, params);
+            clientSenderSignalingGenerationNs += uint64_t(chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - signaling_start).count());
+            if(intendedSk){
+                vector<int> decoded;
+                PVWDec(decoded, tempclue, *intendedSk, params);
+                clientClueCorrect = clientClueCorrect && decoded == zeros;
+            }
             ret.push_back(loadDataSingle(i));
             expectedIndices.push_back(uint64_t(i));
         }
@@ -72,8 +98,16 @@ vector<vector<uint64_t>> preparinngTransactionsFormal(PVWpk& pk,
         {
             auto sk2 = PVWGenerateSecretKey(params);
             PVWEncSK(tempclue, zeros, sk2, params);
+            clientSenderSignalingGenerationNs += uint64_t(chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - signaling_start).count());
         }
 
+        auto serialization_start = chrono::steady_clock::now();
+        stringstream serialized_clue;
+        for(size_t j = 0; j < tempclue.a.GetLength(); j++)
+            serialized_clue << tempclue.a[j].ConvertToInt() << "\n";
+        for(size_t j = 0; j < tempclue.b.GetLength(); j++)
+            serialized_clue << tempclue.b[j].ConvertToInt() << "\n";
+        clientSenderSerializationNs += uint64_t(chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - serialization_start).count());
         saveClues(tempclue, i);
     }
     cout << endl;
@@ -126,12 +160,17 @@ void serverOperations2therest(Ciphertext& lhs, vector<vector<int>>& bipartite_ma
              << " transparent=" << transparentExpanded << endl;
 
         // step 2. deterministic retrieval
+        cerr << "[BENCH_STAGE] OMR deterministic_index_start offset=" << (i-counter) << endl;
         deterministicIndexRetrieval(lhs, expandedSIC, context, degree, i);
+        cerr << "[BENCH_STAGE] OMR deterministic_index_done offset=" << (i-counter) << endl;
 
         // step 3-4. multiply weights and pack them
         // The following two steps are for streaming updates
         vector<vector<Ciphertext>> payloadUnpacked;
-        payloadRetrievalOptimizedwithWeights(payloadUnpacked, payload, bipartite_map_glb, weights_glb, expandedSIC, context, degree, i, i - counter);
+        cerr << "[BENCH_STAGE] OMR payload_retrieval_start offset=" << (i-counter) << endl;
+        payloadRetrievalOptimizedwithWeights(payloadUnpacked, payload, bipartite_map_glb, weights_glb,
+                                             expandedSIC, context, degree, i, i - counter, payloadSize);
+        cerr << "[BENCH_STAGE] OMR payload_retrieval_done offset=" << (i-counter) << endl;
         // Note that if number of repeatitions is already set, this is the only step needed for streaming updates
         payloadPackingOptimized(rhs, payloadUnpacked, bipartite_map_glb, degree, context, gal_keys, i);   
     }
@@ -184,20 +223,23 @@ void serverOperations3therest(vector<vector<Ciphertext>>& lhs, vector<Ciphertext
 
 vector<vector<long>> receiverDecoding(Ciphertext& lhsEnc, vector<vector<int>>& bipartite_map, Ciphertext& rhsEnc,
                         const size_t& degree, const SecretKey& secret_key, const SEALContext& context, const int numOfTransactions, int seed = 3,
-                        const int payloadUpperBound = 306, const int payloadSize = 306){
+                        const int payloadUpperBound = 306, const int payloadSize = 306, bool printIndices = true,
+                        int64_t* decryptNs = nullptr){
 
     // 1. find pertinent indices
     map<int, int> pertinentIndices;
-    decodeIndices(pertinentIndices, lhsEnc, numOfTransactions, degree, secret_key, context);
-    for (map<int, int>::iterator it = pertinentIndices.begin(); it != pertinentIndices.end(); it++)
-    {
-        std::cout << it->first << " ";  // print out all the indices found
+    decodeIndices(pertinentIndices, lhsEnc, numOfTransactions, degree, secret_key, context, decryptNs);
+    if(printIndices){
+        for (map<int, int>::iterator it = pertinentIndices.begin(); it != pertinentIndices.end(); it++)
+        {
+            std::cout << it->first << " ";  // print out all the indices found
+        }
+        cout << std::endl;
     }
-    cout << std::endl;
 
     // 2. forming rhs
     vector<vector<int>> rhs;
-    formRhs(rhs, rhsEnc, secret_key, degree, context, OMRtwoM);
+    formRhs(rhs, rhsEnc, secret_key, degree, context, OMRtwoM, 306, decryptNs);
 
     // 3. forming lhs
     vector<vector<int>> lhs;
@@ -588,11 +630,19 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
     size_t poly_modulus_degree = poly_modulus_degree_glb;
     double setupTimeMs = 0;
     double sendTimeMs = 0;
+    clientSenderSignalingGenerationNs = 0;
+    clientSenderSerializationNs = 0;
+    clientClueCorrect = true;
     auto setup_start = chrono::high_resolution_clock::now();
 
     int logicalNumOfTransactions = benchOptions ? benchOptions->requestedN : numOfTransactions_glb;
-    int numOfTransactions = logicalNumOfTransactions;
-    createDatabase(numOfTransactions, 306); 
+    int numOfTransactions = benchOptions ? int(poly_modulus_degree) : logicalNumOfTransactions;
+    if(benchOptions){
+        experimental::filesystem::create_directories("../data/payloads");
+        experimental::filesystem::create_directories("../data/clues");
+    }
+    // Pilot mode carries one opaque uint64 location handle (four 16-bit slots).
+    createDatabase(numOfTransactions, benchOptions ? 4 : 306);
     cout << "Finishing createDatabase\n";
 
     // step 1. generate PVW sk 
@@ -606,7 +656,7 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
     auto setup_pause = chrono::high_resolution_clock::now();
     setupTimeMs += double(chrono::duration_cast<chrono::microseconds>(setup_pause - setup_start).count()) / 1000.0;
     auto send_start = chrono::high_resolution_clock::now();
-    auto expected = preparinngTransactionsFormal(pk, numOfTransactions, num_of_pertinent_msgs_glb,  params, false, logicalNumOfTransactions);
+    auto expected = preparinngTransactionsFormal(pk, numOfTransactions, num_of_pertinent_msgs_glb,  params, false, logicalNumOfTransactions, &sk);
     auto send_end = chrono::high_resolution_clock::now();
     sendTimeMs = double(chrono::duration_cast<chrono::microseconds>(send_end - send_start).count()) / 1000.0;
     setup_start = chrono::high_resolution_clock::now();
@@ -645,6 +695,15 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
     Evaluator evaluator(context);
     Decryptor decryptor(context, secret_key);
     BatchEncoder batch_encoder(context);
+    const size_t slotCount = batch_encoder.slot_count();
+    if (benchOptions) {
+        numOfTransactions = int(slotCount);
+        cout << "[PILOT_PADDING] N_logical=" << logicalNumOfTransactions
+             << " N_physical=" << numOfTransactions
+             << " poly_modulus_degree=" << poly_modulus_degree
+             << " slot_count=" << slotCount
+             << " target_count=" << num_of_pertinent_msgs_glb << endl;
+    }
 
 
     vector<Ciphertext> switchingKey;
@@ -734,9 +793,7 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
     NTL::SetNumThreads(numcores);
     SecretKey secret_key_blank;
 
-    chrono::high_resolution_clock::time_point time_start, time_end;
-    chrono::microseconds time_diff;
-    time_start = chrono::high_resolution_clock::now();
+    int64_t serverComputeUs = 0;
 
     MemoryPoolHandle my_pool = MemoryPoolHandle::New();
     auto old_prof = MemoryManager::SwitchProfile(std::make_unique<MMProfFixed>(std::move(my_pool)));
@@ -752,8 +809,11 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
         loadClues(SICPVW_batch, start, end, params);
         cerr << "[BENCH_STAGE] OMR phase1_load_clues_done batch=" << batch << endl;
         vector<Ciphertext> switchingKeyLocal = switchingKey;
+        auto core_start = chrono::high_resolution_clock::now();
         packedSICfromPhase1[batch] = serverOperations1obtainPackedSIC(SICPVW_batch, switchingKeyLocal, relin_keys, gal_keys,
                                                         poly_modulus_degree, context, params, end - start);
+        serverComputeUs += chrono::duration_cast<chrono::microseconds>(
+            chrono::high_resolution_clock::now() - core_start).count();
         cerr << "[BENCH_STAGE] OMR phase1_batch_done batch=" << batch << endl;
     }
     NTL_EXEC_RANGE_END;
@@ -777,17 +837,22 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
         cerr << "[BENCH_STAGE] OMR phase2_3_load_payload_start batch=" << batch
              << " start=" << start << " end=" << end << endl;
         vector<vector<uint64_t>> payload_batch;
-        loadData(payload_batch, start, end);
+        loadData(payload_batch, start, end, benchOptions ? 4 : 306);
         cerr << "[BENCH_STAGE] OMR phase2_3_server_ops_start batch=" << batch << endl;
+        auto core_start = chrono::high_resolution_clock::now();
         serverOperations2therest(lhs_multi[batch], bipartite_map[batch], rhs_multi[batch],
                         packedSICfromPhase1[batch], payload_batch, relin_keys, gal_keys_next,
-                        poly_modulus_degree, context_next, context_last, params, end - start, batchCounter);
+                        poly_modulus_degree, context_next, context_last, params, end - start, batchCounter,
+                        benchOptions ? 4 : 306);
+        serverComputeUs += chrono::duration_cast<chrono::microseconds>(
+            chrono::high_resolution_clock::now() - core_start).count();
         cerr << "[BENCH_STAGE] OMR phase2_3_batch_done batch=" << batch << endl;
         
         MemoryManager::SwitchProfile(std::move(old_prof));
     }
     NTL_EXEC_RANGE_END;
 
+    auto aggregate_start = chrono::high_resolution_clock::now();
     for(int i = 1; i < totalBatches; i++){
         evaluator.add_inplace(lhs_multi[0], lhs_multi[i]);
         evaluator.add_inplace(rhs_multi[0], rhs_multi[i]);
@@ -797,25 +862,93 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
             evaluator.mod_switch_to_next_inplace(rhs_multi[0]);
             evaluator.mod_switch_to_next_inplace(lhs_multi[0]);
         }
+    serverComputeUs += chrono::duration_cast<chrono::microseconds>(
+        chrono::high_resolution_clock::now() - aggregate_start).count();
 
-    time_end = chrono::high_resolution_clock::now();
-    time_diff = chrono::duration_cast<chrono::microseconds>(time_end - time_start);
-    cout << "\nDetector runnimg time: " << time_diff.count() << "us." << "\n";
-    double serverTimeMs = double(time_diff.count()) / 1000.0;
+    cout << "\nDetector runnimg time: " << serverComputeUs << "us." << "\n";
+    double serverTimeMs = double(serverComputeUs) / 1000.0;
 
+    auto serialize_start = chrono::high_resolution_clock::now();
     stringstream data_streamdg, data_streamdg2;
-    size_t digestSize = rhs_multi[0].save(data_streamdg) + lhs_multi[0].save(data_streamdg2);
+    rhs_multi[0].save(data_streamdg);
+    lhs_multi[0].save(data_streamdg2);
+    const string rhsBlob = data_streamdg.str();
+    const string lhsBlob = data_streamdg2.str();
+    string responseBuffer;
+    auto appendLengthLE = [&](uint64_t length) {
+        for (int shift = 0; shift < 64; shift += 8)
+            responseBuffer.push_back(char((length >> shift) & 0xff));
+    };
+    appendLengthLE(rhsBlob.size()); responseBuffer.append(rhsBlob);
+    appendLengthLE(lhsBlob.size()); responseBuffer.append(lhsBlob);
+    size_t digestSize = responseBuffer.size();
+    const size_t ciphertext0Bytes = rhsBlob.size();
+    const size_t ciphertext1Bytes = lhsBlob.size();
+    double responseSerializationMs = double(chrono::duration_cast<chrono::microseconds>(
+        chrono::high_resolution_clock::now() - serialize_start).count()) / 1000.0;
     cout << "Digest size: " << digestSize << " bytes" << endl;
 
-    // step 5. receiver decoding
+    // step 5. receiver decoding. The server response is already complete;
+    // parse framing, load both native SEAL ciphertexts, decrypt, and decode.
     bipartiteGraphWeightsGeneration(bipartite_map_glb, weights_glb, numOfTransactions,OMRtwoM,repeatition_glb,seed_glb);
-    time_start = chrono::high_resolution_clock::now();
-    auto res = receiverDecoding(lhs_multi[0], bipartite_map[0], rhs_multi[0],
-                        poly_modulus_degree, secret_key, context, numOfTransactions);
-    time_end = chrono::high_resolution_clock::now();
-    time_diff = chrono::duration_cast<chrono::microseconds>(time_end - time_start);
-    cout << "\nRecipient runnimg time: " << time_diff.count() << "us." << "\n";
-    double recipientTimeMs = double(time_diff.count()) / 1000.0;
+    auto readLengthLE = [&](size_t& offset) -> uint64_t {
+        if(offset + 8 > responseBuffer.size()) throw runtime_error("truncated OMR response framing");
+        uint64_t value = 0;
+        for(int shift = 0; shift < 64; shift += 8)
+            value |= uint64_t(uint8_t(responseBuffer[offset++])) << shift;
+        return value;
+    };
+    const int recipientReps = benchOptions ? benchOptions->recipientBenchReps : 1;
+    vector<double> recipientSamplesMs;
+    vector<double> loadSamplesMs, decryptSamplesMs, decodeSamplesMs;
+    vector<vector<long>> res;
+    for(int rep = 0; rep < recipientReps; ++rep){
+        const auto recipientStart = chrono::steady_clock::now();
+        const auto loadStart = recipientStart;
+        size_t offset = 0;
+        const uint64_t rhsLength = readLengthLE(offset);
+        if(rhsLength > responseBuffer.size() - offset) throw runtime_error("invalid OMR rhs ciphertext length");
+        const string rhsSerialized = responseBuffer.substr(offset, size_t(rhsLength));
+        offset += size_t(rhsLength);
+        const uint64_t lhsLength = readLengthLE(offset);
+        if(lhsLength > responseBuffer.size() - offset || offset + lhsLength != responseBuffer.size())
+            throw runtime_error("invalid OMR lhs ciphertext length");
+        const string lhsSerialized = responseBuffer.substr(offset, size_t(lhsLength));
+        istringstream rhsStream(rhsSerialized, ios::in | ios::binary);
+        istringstream lhsStream(lhsSerialized, ios::in | ios::binary);
+        Ciphertext rhsLoaded, lhsLoaded;
+        rhsLoaded.load(context, rhsStream);
+        lhsLoaded.load(context, lhsStream);
+        const auto loadEnd = chrono::steady_clock::now();
+        int64_t decryptNs = 0;
+        const auto decodeStart = loadEnd;
+        auto decoded = receiverDecoding(lhsLoaded, bipartite_map[0], rhsLoaded,
+                            poly_modulus_degree, secret_key, context, numOfTransactions, 3,
+                            benchOptions ? 4 : 306, benchOptions ? 4 : 306, false, &decryptNs);
+        const auto recipientEnd = chrono::steady_clock::now();
+        const int64_t decodeTotalNs = chrono::duration_cast<chrono::nanoseconds>(
+            recipientEnd - decodeStart).count();
+        loadSamplesMs.push_back(double(chrono::duration_cast<chrono::nanoseconds>(
+            loadEnd - loadStart).count()) / 1000000.0);
+        decryptSamplesMs.push_back(double(decryptNs) / 1000000.0);
+        decodeSamplesMs.push_back(double(decodeTotalNs - decryptNs) / 1000000.0);
+        recipientSamplesMs.push_back(double(chrono::duration_cast<chrono::nanoseconds>(
+            recipientEnd - recipientStart).count()) / 1000000.0);
+        res = std::move(decoded);
+    }
+    vector<double> sortedRecipientSamples = recipientSamplesMs;
+    sort(sortedRecipientSamples.begin(), sortedRecipientSamples.end());
+    const double recipientTimeMs = sortedRecipientSamples[sortedRecipientSamples.size() / 2];
+    const double recipientMinMs = sortedRecipientSamples.front();
+    const double recipientMaxMs = sortedRecipientSamples.back();
+    auto medianSample = [](vector<double> samples) {
+        sort(samples.begin(), samples.end());
+        return samples[samples.size() / 2];
+    };
+    const double ciphertextLoadMs = medianSample(loadSamplesMs);
+    const double decryptTimeMs = medianSample(decryptSamplesMs);
+    const double decodeTimeMs = medianSample(decodeSamplesMs);
+    cout << "\nRecipient response consumption median: " << recipientTimeMs << "ms." << "\n";
 
     bool correct = checkRes(expected, res);
     if(correct)
@@ -831,11 +964,24 @@ void OMR2(const BenchmarkOptions* benchOptions = nullptr, BenchmarkResult* bench
         benchResult->setupTimeMs = setupTimeMs;
         benchResult->sendTimeMs = sendTimeMs;
         benchResult->serverTimeMs = serverTimeMs;
+        benchResult->responseSerializationMs = responseSerializationMs;
         benchResult->recipientTimeMs = recipientTimeMs;
+        benchResult->recipientMinMs = recipientMinMs;
+        benchResult->recipientMaxMs = recipientMaxMs;
+        benchResult->recipientBenchReps = recipientReps;
+        benchResult->ciphertextLoadMs = ciphertextLoadMs;
+        benchResult->decryptTimeMs = decryptTimeMs;
+        benchResult->decodeTimeMs = decodeTimeMs;
         benchResult->totalTimeMs = setupTimeMs + sendTimeMs + serverTimeMs + recipientTimeMs;
         benchResult->digestSizeBytes = digestSize;
+        benchResult->ciphertext0Bytes = ciphertext0Bytes;
+        benchResult->ciphertext1Bytes = ciphertext1Bytes;
         benchResult->detectionKeySizeBytes = detectionKeySize;
         benchResult->correct = correct;
+        benchResult->senderSignalingGenerationNs = clientSenderSignalingGenerationNs;
+        benchResult->senderSerializationNs = clientSenderSerializationNs;
+        benchResult->clueCorrect = clientClueCorrect;
+        benchResult->observedResultCount = res.size();
     }
 }
 
@@ -1133,6 +1279,16 @@ bool parseBenchmarkOptions(int argc, char** argv, BenchmarkOptions& options) {
                 throw invalid_argument("--kbar requires a value");
             }
             options.kbar = size_t(parsePositiveInt(argv[++i], "--kbar"));
+        } else if(arg == "--poly-modulus-degree"){
+            if(i + 1 >= argc){
+                throw invalid_argument("--poly-modulus-degree requires a value");
+            }
+            options.polyModulusDegree = size_t(parsePositiveInt(argv[++i], "--poly-modulus-degree"));
+        } else if(arg == "--recipient-bench-reps"){
+            if(i + 1 >= argc){
+                throw invalid_argument("--recipient-bench-reps requires a value");
+            }
+            options.recipientBenchReps = parsePositiveInt(argv[++i], "--recipient-bench-reps");
         } else if(arg == "--help" || arg == "-h"){
             printBenchmarkUsage(argv[0]);
             exit(0);
@@ -1171,6 +1327,9 @@ int runBenchmark(const BenchmarkOptions& options) {
     numcores = options.threads;
     numOfTransactions_glb = options.requestedN;
     num_of_pertinent_msgs_glb = options.kbar;
+    if(options.polyModulusDegree != 0){
+        poly_modulus_degree_glb = options.polyModulusDegree;
+    }
 
     BenchmarkResult result;
     OMR2(&options, &result);
@@ -1209,6 +1368,67 @@ int runBenchmark(const BenchmarkOptions& options) {
          << result.digestSizeBytes << ","
          << (result.correct ? "completed" : "crashed") << ","
          << (result.correct ? bottleneck : "result_check_failed") << endl;
+    const bool clientCorrect = result.correct && result.clueCorrect;
+    cout << "[CLIENT_BENCH_JSON] {"
+         << "\"scheme\":\"OMR\","
+         << "\"Ns\":" << result.requestedN << ","
+         << "\"Nr\":null,"
+         << "\"actual_k\":" << result.kbar << ","
+         << "\"observed_result_count\":" << result.observedResultCount << ","
+         << "\"sender_signaling_generation_ns\":" << result.senderSignalingGenerationNs << ","
+         << "\"sender_serialization_ns\":" << result.senderSerializationNs << ","
+         << "\"sender_total_online_ns\":" << result.senderSignalingGenerationNs + result.senderSerializationNs << ","
+         << "\"recipient_processing_ns\":" << uint64_t(result.recipientTimeMs * 1000000.0) << ","
+         << "\"correctness\":" << (clientCorrect ? "true" : "false") << ","
+         << "\"output_type\":\"decoded_pertinent_payloads\","
+         << "\"error_class\":\"" << (clientCorrect ? "" : "clue_or_decode_mismatch") << "\","
+         << "\"scheme_specific_parameters\":\"PVW_n=450;PVW_q=65537;PVW_stddev=1.3;PVW_m=16000;PVW_ell=4;kbar="
+         << result.kbar << ";threads=" << result.threads << "\"}" << endl;
+    cout << "[RECIPIENT_JSON] {"
+         << "\"scheme\":\"OMR\",\"N\":" << result.requestedN
+         << ",\"k_actual\":" << result.kbar
+         << ",\"response_bytes\":" << result.digestSizeBytes
+         << ",\"ciphertext0_bytes\":" << result.ciphertext0Bytes
+         << ",\"ciphertext1_bytes\":" << result.ciphertext1Bytes
+         << ",\"recipient_processing_ns\":" << uint64_t(result.recipientTimeMs * 1000000.0)
+         << ",\"recipient_min_ns\":" << uint64_t(result.recipientMinMs * 1000000.0)
+         << ",\"recipient_max_ns\":" << uint64_t(result.recipientMaxMs * 1000000.0)
+         << ",\"recipient_inner_ops\":" << result.recipientBenchReps
+         << ",\"correctness\":" << (result.correct ? "true" : "false")
+         << ",\"consumer_operations\":\"parse_framing_ciphertext_load_decrypt_decode\"}" << endl;
+    cout << "[PILOT_JSON] {"
+         << "\"scheme\":\"OMR\",\"N\":" << result.requestedN
+         << ",\"k_actual\":" << result.kbar
+         << ",\"poly_modulus_degree\":" << poly_modulus_degree_glb
+         << ",\"slot_count\":" << poly_modulus_degree_glb
+         << ",\"parameter_mode\":\"reduced_parameter_pilot\""
+         << ",\"security_comparable\":false"
+         << ",\"admission_status\":\"unsupported\",\"admission_online_ms\":null"
+         << ",\"retrieval_core_ms\":" << result.serverTimeMs
+         << ",\"response_serialization_ms\":" << result.responseSerializationMs
+         << ",\"retrieval_online_ms\":" << result.serverTimeMs + result.responseSerializationMs
+         << ",\"server0_response_bytes\":" << result.digestSizeBytes
+         << ",\"ciphertext0_bytes\":" << result.ciphertext0Bytes
+         << ",\"ciphertext1_bytes\":" << result.ciphertext1Bytes
+         << ",\"server1_response_bytes\":null"
+         << ",\"server_to_recipient_bytes\":" << result.digestSizeBytes
+         << ",\"candidate_count\":null,\"false_positive_count\":null"
+         << ",\"correctness_status\":\"" << (result.correct ? "passed" : "failed") << "\""
+         << ",\"measurement_quality\":\"reduced_parameter_pilot\""
+         << ",\"measurement_status\":\"ok\"}" << endl;
+    cout << "[OMR_SCALABILITY_JSON] {"
+         << "\"N\":" << result.requestedN
+         << ",\"poly_modulus_degree\":" << poly_modulus_degree_glb
+         << ",\"slot_count\":" << poly_modulus_degree_glb
+         << ",\"ciphertext_size\":" << result.digestSizeBytes
+         << ",\"retrieval_ms\":" << result.serverTimeMs + result.responseSerializationMs
+         << ",\"response_serialization_ms\":" << result.responseSerializationMs
+         << ",\"load_ms\":" << result.ciphertextLoadMs
+         << ",\"eval_ms\":" << result.serverTimeMs
+         << ",\"decrypt_ms\":" << result.decryptTimeMs
+         << ",\"decode_ms\":" << result.decodeTimeMs
+         << ",\"correctness\":" << (result.correct ? "true" : "false")
+         << "}" << endl;
     return 0;
 }
 

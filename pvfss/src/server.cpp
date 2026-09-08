@@ -6,7 +6,10 @@
 #include "server.h"
 #include<cstring>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
+#include <sys/socket.h>
+#include <cerrno>
 extern "C"{
 #include <relic/relic.h>
 #include <relic/relic_bn.h>
@@ -15,24 +18,43 @@ extern "C"{
 
 namespace {
 
-void send_bn(HighSpeedNetIO *io, bn_t value) {
+constexpr uint32_t kMaxBnFrameBytes = 8192;
+
+void send_bn(NetIO *io, bn_t value) {
     const uint32_t size = static_cast<uint32_t>(bn_size_bin(value));
+    if (size > kMaxBnFrameBytes) {
+        throw std::runtime_error("BTGen BN frame exceeds configured maximum");
+    }
     std::vector<uint8_t> buffer(size);
     if (size != 0) {
         bn_write_bin(buffer.data(), static_cast<int>(size), value);
     }
-    io->send_data(&size, sizeof(size));
+    const uint8_t length_le[4] = {
+        static_cast<uint8_t>(size),
+        static_cast<uint8_t>(size >> 8),
+        static_cast<uint8_t>(size >> 16),
+        static_cast<uint8_t>(size >> 24),
+    };
+    io->send_data(length_le, sizeof(length_le));
     if (size != 0) {
-        io->send_data(buffer.data(), size);
+        io->send_data(buffer.data(), static_cast<int>(size));
     }
+    io->flush();
 }
 
-void recv_bn(HighSpeedNetIO *io, bn_t value) {
-    uint32_t size = 0;
-    io->recv_data(&size, sizeof(size));
+void recv_bn(NetIO *io, bn_t value) {
+    uint8_t length_le[4] = {};
+    io->recv_data(length_le, sizeof(length_le));
+    const uint32_t size = static_cast<uint32_t>(length_le[0]) |
+                          (static_cast<uint32_t>(length_le[1]) << 8) |
+                          (static_cast<uint32_t>(length_le[2]) << 16) |
+                          (static_cast<uint32_t>(length_le[3]) << 24);
+    if (size > kMaxBnFrameBytes) {
+        throw std::runtime_error("BTGen received invalid BN frame length");
+    }
     std::vector<uint8_t> buffer(size);
     if (size != 0) {
-        io->recv_data(buffer.data(), size);
+        io->recv_data(buffer.data(), static_cast<int>(size));
         bn_read_bin(value, buffer.data(), static_cast<int>(size));
     } else {
         bn_zero(value);
@@ -119,7 +141,7 @@ void block_2_bn_128(block b, bn_t &a){
     //std::cout<<"bn_t = ";bn_print(a);
 }
 //party, io, fa, fb
-void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, block &ccl){
+void BTGen(int party, NetIO *io, block &aa, block &bb, block &cch, block &ccl){
     //block fc;
 
     int bits = 64;
@@ -156,9 +178,11 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
     phpe_new(prv);
     bn_set_2b(p2b, bits);
 
-    //key generation
-    //auto start = std::chrono::system_clock::now();
-    cp_phpe_gen(pub, prv, 3072);
+    // Paillier setup is owned by ALICE. BOB receives the public key below and
+    // must not generate an unrelated second keypair.
+    if (party == ALICE) {
+        cp_phpe_gen(pub, prv, 3072);
+    }
 
     //std::cout<<"pub = ";bn_write_str(str, len, pub, 10);  printf("%s\n", str);//bn_print(pub);
     //std::cout<<"aa"<<std::endl;
@@ -310,14 +334,26 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
             //std::cout<<"t2 = ";        bn_write_str(str,len,t2,10);    printf("%s\n",str);
             //std::cout<<"v = t1 * t2 =";bn_write_str(str, len, v, 10);  printf("%s\n", str);//bn_print(v);
             //io->send_data(&v, sizeof(bn_t));
-            cp_phpe_enc(r, r, pub);
+            // Keep plaintext randomness and ciphertext in distinct BN objects;
+            // the pinned RELIC Paillier API does not guarantee alias-safe enc.
+            bn_t r_plain, r_enc;
+            bn_null(r_plain); bn_null(r_enc);
+            bn_new(r_plain); bn_new(r_enc);
+            bn_copy(r_plain, r);
+            cp_phpe_enc(r_enc, r_plain, pub);
             //std::cout<<"r = ";bn_write_str(str, len, r, 10);  printf("%s\n", str);//bn_print(r);
             //io->send_data(&r, sizeof(bn_t));
-            cp_phpe_add(v, v, r, pub);
+            bn_t v_sum;
+            bn_null(v_sum); bn_new(v_sum);
+            cp_phpe_add(v_sum, v, r_enc, pub);
+            bn_copy(v, v_sum);
             //std::cout<<"v = v * r =";bn_write_str(str, len, v, 10);  printf("%s\n", str);//bn_print(v);
 
             send_bn(io, v);
 
+            bn_clean(r_plain);
+            bn_clean(r_enc);
+            bn_clean(v_sum);
             bn_clean(r);
             bn_clean(t1);
             bn_clean(t2);
@@ -394,7 +430,7 @@ void BTGen(int party, HighSpeedNetIO *io, block &aa, block &bb, block &cch, bloc
 
 
 
-block Mult(int party,HighSpeedNetIO *io,uint64_t N,block x,block y,block a,block b,block ch,block cl){
+block Mult(int party,NetIO *io,uint64_t N,block x,block y,block a,block b,block ch,block cl){
     block D,E,Di,Ei,Zl,Zh,Zli,Zhi, out;
     D = x-a;
     E = y-b;
@@ -425,7 +461,10 @@ block Mult(int party,HighSpeedNetIO *io,uint64_t N,block x,block y,block a,block
     return out = D*E + Zl + Zli;
 }
 
-void CPRS(int party,HighSpeedNetIO *io,uint64_t N,block *v,block ran,block fa,block fb,block fch,block fcl, std::vector<uint64_t>& sig){
+void CPRS(int party, NetIO *io, uint64_t N, block *v, block ran,
+          block fa, block fb, block fch, block fcl,
+          std::vector<uint64_t>& nonzero_indices,
+          std::vector<uint64_t>& compressed_shares) {
     //block r= makeBlock(0, ran_i);
     //vector<uint64_t> sig;
     std::vector<block> xr(N);
@@ -441,8 +480,10 @@ void CPRS(int party,HighSpeedNetIO *io,uint64_t N,block *v,block ran,block fa,bl
         }
         block opened = xr[i] + xr_other;
         if(_mm_extract_epi64(opened, 0)!=0) {
-            //std::cout<<i<<endl;
-            sig.push_back(i);
+            nonzero_indices.push_back(i);
+            compressed_shares.push_back(
+                static_cast<uint64_t>(_mm_extract_epi64(v[i], 0)) %
+                UINT64_C(2305843009213693951));
         }
     }
 }

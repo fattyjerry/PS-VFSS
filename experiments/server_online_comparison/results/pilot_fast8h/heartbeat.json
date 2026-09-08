@@ -1,0 +1,10 @@
+{
+  "status": "paused_by_user",
+  "N": 4096,
+  "elapsed_seconds": 0.0,
+  "scheme": "PPS-GC",
+  "task_key": "PPS-GC|4096|50|measured|0|end_to_end_pilot|7482348a1b78843736fd4215e5037a0935dfac0f2a64a0d2acf0650c17081b6e",
+  "timestamp_utc": "2026-08-22T13:40:03.687734+00:00",
+  "trial_index": 0,
+  "trial_type": "measured"
+}

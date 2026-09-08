@@ -1,0 +1,2 @@
+N,k_actual,gamma,trial_count,response_median_bytes,response_mean_bytes,response_min_bytes,response_max_bytes,candidate_median,candidate_mean,candidate_min,candidate_max,false_positive_median,false_positive_mean,false_positive_min,false_positive_max,theoretical_expected_false_positives,theoretical_expected_response_bytes
+4096,50,6,30,892.0,904.8,764,1028,111.0,112.6,95,128,61.0,62.6,45,78,63.21875,909.75

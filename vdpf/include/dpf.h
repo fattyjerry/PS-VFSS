@@ -17,8 +17,10 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-#define FIELDSIZE 2
-#define FIELDBITS 1
+#include "field61.h"
+
+#define FIELDSIZE VDPF_FIELD_MODULUS
+#define FIELDBITS 61
 
 #define INDEX_LASTCW 18 * size + 18
 #define CWSIZE 18
@@ -47,9 +49,8 @@ extern void batchEvalDPF(EVP_CIPHER_CTX *ctx, int size, bool b, unsigned char *k
 extern void fullDomainDPF(EVP_CIPHER_CTX *ctx, int size, bool b, unsigned char *k, uint8_t *out);
 
 // VDPF functions
-extern void genVDPF(EVP_CIPHER_CTX *ctx, struct Hash *hash, int size, uint64_t index, unsigned char *k0, unsigned char *k1);
+extern void genVDPF(EVP_CIPHER_CTX *ctx, struct Hash *hash, int size, uint64_t index, uint64_t beta, unsigned char *k0, unsigned char *k1);
 extern void batchEvalVDPF(EVP_CIPHER_CTX *ctx, struct Hash *mmo_hash1, struct Hash *mmo_hash2, int size, bool b, unsigned char *k, uint64_t *in, uint64_t inl, uint8_t *out, uint8_t *pi);
-extern int batchEvalVDPFParallel(EVP_CIPHER_CTX *ctx, struct Hash *mmo_hash1, struct Hash *mmo_hash2, int size, bool b, unsigned char *k, uint64_t *in, uint64_t inl, uint8_t *out, uint8_t *pi, int threads);
 extern void fullDomainVDPF(EVP_CIPHER_CTX *ctx, struct Hash *mmo_hash1, struct Hash *mmo_hash2, int size, bool b, unsigned char *k, uint8_t *out, uint8_t *proof);
 
 #endif

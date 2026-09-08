@@ -1,4 +1,5 @@
 use std::env;
+use std::convert::TryInto;
 use std::iter;
 use std::time::Instant;
 
@@ -21,6 +22,11 @@ struct BenchResult {
     setup_ms: u128,
     send_ms: u128,
     server_ms: u128,
+    admission_us: u128,
+    retrieval_core_us: u128,
+    serialization_us: u128,
+    server0_response_bytes: usize,
+    server1_response_bytes: usize,
     recipient_ms: u128,
     comm_bytes: usize,
     status: String,
@@ -48,6 +54,31 @@ fn ceil_div(a: usize, b: usize) -> usize {
     (a + b - 1) / b
 }
 
+fn consume_row_share_responses(response_a: &[u8], response_b: &[u8]) -> Result<Vec<[u8; LOCATION_BYTES]>, String> {
+    if response_a.len() < 4 || response_b.len() < 4 {
+        return Err("truncated row-share response".to_string());
+    }
+    let count_a = u32::from_le_bytes(response_a[..4].try_into().unwrap()) as usize;
+    let count_b = u32::from_le_bytes(response_b[..4].try_into().unwrap()) as usize;
+    if count_a != count_b {
+        return Err("row-share response counts differ".to_string());
+    }
+    let expected_len = 4 + count_a * LOCATION_BYTES;
+    if response_a.len() != expected_len || response_b.len() != expected_len {
+        return Err("invalid row-share response length".to_string());
+    }
+    let mut recovered = Vec::with_capacity(count_a);
+    for j in 0..count_a {
+        let offset = 4 + j * LOCATION_BYTES;
+        let mut location = [0u8; LOCATION_BYTES];
+        for i in 0..LOCATION_BYTES {
+            location[i] = response_a[offset + i] ^ response_b[offset + i];
+        }
+        recovered.push(location);
+    }
+    Ok(recovered)
+}
+
 fn run(n: usize, ell: usize) -> BenchResult {
     let mut result = BenchResult {
         n,
@@ -55,8 +86,13 @@ fn run(n: usize, ell: usize) -> BenchResult {
         setup_ms: 0,
         send_ms: 0,
         server_ms: 0,
+        admission_us: 0,
+        retrieval_core_us: 0,
+        serialization_us: 0,
+        server0_response_bytes: 0,
+        server1_response_bytes: 0,
         recipient_ms: 0,
-        comm_bytes: 2 * ell * LOCATION_BYTES,
+        comm_bytes: 0,
         status: "completed".to_string(),
         bottleneck: String::new(),
     };
@@ -93,8 +129,12 @@ fn run(n: usize, ell: usize) -> BenchResult {
         .map(|(receiver, blinding)| receiver as u16 ^ blinding)
         .collect();
 
+    let locs: Vec<Vec<u8>> = (0..n).map(|i| {
+        let mut location = vec![0u8; LOCATION_BYTES];
+        location[..8].copy_from_slice(&((i + 1) as u64).to_le_bytes());
+        location
+    }).collect();
     let mut gen_loc = || iter::repeat_with(|| rng.gen()).take(LOCATION_BYTES).collect::<Vec<u8>>();
-    let locs: Vec<Vec<u8>> = iter::repeat_with(&mut gen_loc).take(n).collect();
     let locs_a: Vec<Vec<u8>> = iter::repeat_with(gen_loc).take(n).collect();
     let locs_b: Vec<Vec<u8>> = locs
         .iter()
@@ -193,18 +233,40 @@ fn run(n: usize, ell: usize) -> BenchResult {
         last_upd_table_b = new_indexes_b;
         eprintln!("[BENCH_STAGE] PPS-GC batch_done idx={}", batch_idx);
     }
-    result.server_ms = server_start.elapsed().as_millis();
+    result.admission_us = server_start.elapsed().as_micros();
+    result.server_ms = result.admission_us / 1000;
 
     eprintln!("[BENCH_STAGE] PPS-GC recipient_reconstruction_start");
-    let recipient_start = Instant::now();
+    let retrieval_start = Instant::now();
     let receiver = 0u16;
     let expected = (0..n)
         .filter(|i| i % table_size.m == receiver as usize)
         .count();
     let recovered_count = (last_upd_table_a[receiver] ^ last_upd_table_b[receiver]).as_buffer().clone();
     let recovered_count = u16::from_be_bytes([recovered_count[0], recovered_count[1]]) as usize;
+    let row_a: Vec<ByteArray<32>> = (0..ell).map(|j| table_a[receiver][j]).collect();
+    let row_b: Vec<ByteArray<32>> = (0..ell).map(|j| table_b[receiver][j]).collect();
+    result.retrieval_core_us = retrieval_start.elapsed().as_micros();
+
+    let serialize_start = Instant::now();
+    let serialize_row = |row: &[ByteArray<32>]| {
+        let mut buffer = Vec::with_capacity(4 + row.len() * LOCATION_BYTES);
+        buffer.extend_from_slice(&(row.len() as u32).to_le_bytes());
+        for entry in row {
+            buffer.extend_from_slice(entry.as_buffer());
+        }
+        buffer
+    };
+    let response_a = serialize_row(&row_a);
+    let response_b = serialize_row(&row_b);
+    result.serialization_us = serialize_start.elapsed().as_micros();
+    result.server0_response_bytes = response_a.len();
+    result.server1_response_bytes = response_b.len();
+    result.comm_bytes = response_a.len() + response_b.len();
+
+    let recipient_start = Instant::now();
     for j in 0..usize::min(expected, ell) {
-        let _row_entry: ByteArray<32> = table_a[receiver][j] ^ table_b[receiver][j];
+        let _row_entry: ByteArray<32> = row_a[j] ^ row_b[j];
     }
     result.recipient_ms = recipient_start.elapsed().as_millis();
 
@@ -241,6 +303,15 @@ fn print_result(r: &BenchResult) {
         r.status,
         r.bottleneck
     );
+    println!(
+        "[PILOT_JSON] {{\"scheme\":\"PPS-GC\",\"N\":{},\"k_actual\":{},\"admission_status\":\"{}\",\"admission_online_ms\":{:.6},\"retrieval_core_ms\":{:.6},\"response_serialization_ms\":{:.6},\"retrieval_online_ms\":{:.6},\"server0_response_bytes\":{},\"server1_response_bytes\":{},\"server_to_recipient_bytes\":{},\"candidate_count\":null,\"false_positive_count\":null,\"measurement_status\":\"{}\"}}",
+        r.n, r.ell, if r.status == "completed" { "ok" } else { "error" },
+        r.admission_us as f64 / 1000.0,
+        r.retrieval_core_us as f64 / 1000.0,
+        r.serialization_us as f64 / 1000.0,
+        (r.retrieval_core_us + r.serialization_us) as f64 / 1000.0,
+        r.server0_response_bytes, r.server1_response_bytes, r.comm_bytes, r.status
+    );
 }
 
 fn main() {
@@ -248,6 +319,8 @@ fn main() {
     let mut n = 4096usize;
     let mut ell = 50usize;
     let mut all = false;
+    let mut response_only = false;
+    let mut recipient_only = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -260,12 +333,76 @@ fn main() {
                 ell = args[i].parse().unwrap();
             }
             "--all" => all = true,
+            "--response-only-component-pilot" => response_only = true,
+            "--recipient-only-component-pilot" => recipient_only = true,
             _ => panic!("unknown argument: {}", args[i]),
         }
         i += 1;
     }
 
     println!("[BENCH_CSV] scheme,N,ell,setup_ms,send_ms,server_ms,recipient_ms,comm_bytes,status,bottleneck");
+    if recipient_only {
+        let mut rng = StdRng::seed_from_u64(0x5050534743524543);
+        let mut row_a = Vec::with_capacity(ell);
+        let mut row_b = Vec::with_capacity(ell);
+        let mut expected = Vec::with_capacity(ell);
+        for j in 0..ell {
+            let share_a: [u8; LOCATION_BYTES] = rng.gen();
+            let mut location = [0u8; LOCATION_BYTES];
+            location[..8].copy_from_slice(&((j + 1) as u64).to_le_bytes());
+            let mut share_b = [0u8; LOCATION_BYTES];
+            for i in 0..LOCATION_BYTES { share_b[i] = share_a[i] ^ location[i]; }
+            row_a.push(ByteArray::new(share_a));
+            row_b.push(ByteArray::new(share_b));
+            expected.push(location);
+        }
+        let serialize_row = |row: &[ByteArray<32>]| {
+            let mut buffer = Vec::with_capacity(4 + row.len() * LOCATION_BYTES);
+            buffer.extend_from_slice(&(row.len() as u32).to_le_bytes());
+            for entry in row { buffer.extend_from_slice(entry.as_buffer()); }
+            buffer
+        };
+        let response_a = serialize_row(&row_a);
+        let response_b = serialize_row(&row_b);
+        const INNER_OPS: usize = 10_000;
+        let start = Instant::now();
+        let mut recovered = Vec::new();
+        let mut recipient_checksum = 0u8;
+        for _ in 0..INNER_OPS {
+            recovered = consume_row_share_responses(&response_a, &response_b).unwrap();
+            recipient_checksum ^= recovered.last().map(|v| v[0]).unwrap_or(0);
+        }
+        let recipient_processing_ns = start.elapsed().as_nanos() as f64 / INNER_OPS as f64;
+        println!(
+            "[RECIPIENT_JSON] {{\"scheme\":\"PPS-GC\",\"N\":{},\"k_actual\":{},\"response_bytes\":{},\"recipient_processing_ns\":{:.3},\"recipient_inner_ops\":{},\"correctness\":{},\"consumer_operations\":\"deserialize_two_row_share_buffers_and_xor_reconstruct\"}}",
+            n, ell, response_a.len() + response_b.len(), recipient_processing_ns,
+            INNER_OPS, recovered == expected && recipient_checksum == 0
+        );
+        return;
+    }
+    if response_only {
+        let table_size = TableSize { m: ceil_div(n, ell), l: ell };
+        let table_a = LocationTable::random(&mut StdRng::seed_from_u64(1), table_size).unwrap();
+        let table_b = LocationTable::random(&mut StdRng::seed_from_u64(2), table_size).unwrap();
+        let row_a: Vec<ByteArray<32>> = (0..ell).map(|j| table_a[0][j]).collect();
+        let row_b: Vec<ByteArray<32>> = (0..ell).map(|j| table_b[0][j]).collect();
+        let serialize_row = |row: &[ByteArray<32>]| {
+            let mut buffer = Vec::with_capacity(4 + row.len() * LOCATION_BYTES);
+            buffer.extend_from_slice(&(row.len() as u32).to_le_bytes());
+            for entry in row { buffer.extend_from_slice(entry.as_buffer()); }
+            buffer
+        };
+        let start = Instant::now();
+        let response_a = serialize_row(&row_a);
+        let response_b = serialize_row(&row_b);
+        let serialization_us = start.elapsed().as_micros();
+        println!(
+            "[PILOT_JSON] {{\"scheme\":\"PPS-GC\",\"N\":{},\"k_actual\":{},\"admission_status\":\"not_measured\",\"admission_online_ms\":null,\"retrieval_core_ms\":0.0,\"response_serialization_ms\":{:.6},\"retrieval_online_ms\":{:.6},\"server0_response_bytes\":{},\"server1_response_bytes\":{},\"server_to_recipient_bytes\":{},\"measurement_quality\":\"response_only_component_pilot\",\"measurement_status\":\"ok\"}}",
+            n, ell, serialization_us as f64 / 1000.0, serialization_us as f64 / 1000.0,
+            response_a.len(), response_b.len(), response_a.len() + response_b.len()
+        );
+        return;
+    }
     if all {
         for n in [256usize, 512, 1024, 2048, 4096, 8192, 16384] {
             print_result(&run(n, ell));

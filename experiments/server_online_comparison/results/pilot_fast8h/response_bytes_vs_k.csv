@@ -1,0 +1,31 @@
+series,scheme,fmd_gamma,N,k_actual,trial_count,response_bytes,candidate_count,false_positive_count,measurement_status,measurement_quality,correctness_status
+PSVFSS,PSVFSS,,4096,4,1,72,,,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,4096,10,1,168,,,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,4096,20,1,328,,,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,4096,30,1,488,,,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,4096,40,1,648,,,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,4096,50,1,808,,,ok,component_composed_pilot,failed
+PPS-GC,PPS-GC,,4096,4,1,264,,,ok,response_only_component_pilot,not_applicable
+PPS-GC,PPS-GC,,4096,10,1,648,,,ok,response_only_component_pilot,not_applicable
+PPS-GC,PPS-GC,,4096,20,1,1288,,,ok,response_only_component_pilot,not_applicable
+PPS-GC,PPS-GC,,4096,30,1,1928,,,ok,response_only_component_pilot,not_applicable
+PPS-GC,PPS-GC,,4096,40,1,2568,,,ok,response_only_component_pilot,not_applicable
+PPS-GC,PPS-GC,,4096,50,1,3208,,,ok,response_only_component_pilot,not_applicable
+FMD gamma=8,FMD,8,4096,4,1,172,21,17,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,4096,10,1,228,28,18,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,4096,20,1,300,37,17,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,4096,30,1,308,38,8,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,4096,40,1,476,59,19,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,4096,50,1,564,70,20,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,4096,4,1,516,64,60,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,4096,10,1,556,69,59,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,4096,20,1,628,78,58,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,4096,30,1,716,89,59,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,4096,40,1,900,112,72,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,4096,50,1,956,119,69,ok,end_to_end_pilot,not_recorded
+OMR,OMR,,4096,4,1,74269,,,ok,reduced_parameter_pilot,failed
+OMR,OMR,,4096,10,1,74285,,,ok,reduced_parameter_pilot,failed
+OMR,OMR,,4096,20,1,74261,,,ok,reduced_parameter_pilot,failed
+OMR,OMR,,4096,30,1,74292,,,ok,reduced_parameter_pilot,failed
+OMR,OMR,,4096,40,1,74217,,,ok,reduced_parameter_pilot,failed
+OMR,OMR,,4096,50,1,74254,,,ok,reduced_parameter_pilot,failed

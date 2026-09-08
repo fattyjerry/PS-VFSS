@@ -2,6 +2,7 @@
 
 #include "seal/seal.h"
 #include <algorithm>  
+#include <chrono>
 #include <map>
 
 using namespace seal;
@@ -36,12 +37,15 @@ vector<uint64_t> decodeIndicesOMD(const Ciphertext& indexPack, const int& num_of
 
 // Deterministic decoding for OMR
 // the deterministic encoding for OMD is more efficient, but has limited affect on the overall performance
-void decodeIndices(map<int, int>& pertinentIndices, const Ciphertext& indexPack, const int& num_of_transactions, const size_t& degree, const SecretKey& secret_key, const SEALContext& context){
+void decodeIndices(map<int, int>& pertinentIndices, const Ciphertext& indexPack, const int& num_of_transactions, const size_t& degree, const SecretKey& secret_key, const SEALContext& context, int64_t* decrypt_ns = nullptr){
     Decryptor decryptor(context, secret_key);
     BatchEncoder batch_encoder(context);
     vector<uint64_t> indexPackint(degree);
     Plaintext plain_result;
+    auto decrypt_start = std::chrono::steady_clock::now();
     decryptor.decrypt(indexPack, plain_result);
+    if(decrypt_ns) *decrypt_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now() - decrypt_start).count();
     batch_encoder.decode(plain_result, indexPackint);
     int counter = 0;
     int backcounter = 16;
@@ -108,12 +112,15 @@ void decodeIndicesRandom(map<int, int>& pertinentIndices, const vector<vector<Ci
 
 // Construct the RHS of the equations
 void formRhs(vector<vector<int>>& rhs, const Ciphertext& packedPayloads, const SecretKey& secret_key, const size_t& degree, const SEALContext& context,
-                         const int num_of_buckets = 64, const int payloadSlots = 306){ // or 306
+                         const int num_of_buckets = 64, const int payloadSlots = 306, int64_t* decrypt_ns = nullptr){ // or 306
     Decryptor decryptor(context, secret_key);
     BatchEncoder batch_encoder(context);
     vector<uint64_t> rhsint(degree);
     Plaintext plain_result;
+    auto decrypt_start = std::chrono::steady_clock::now();
     decryptor.decrypt(packedPayloads, plain_result);
+    if(decrypt_ns) *decrypt_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now() - decrypt_start).count();
     batch_encoder.decode(plain_result, rhsint);
 
     rhs.resize(num_of_buckets);

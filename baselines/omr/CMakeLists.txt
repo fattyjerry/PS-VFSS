@@ -41,5 +41,7 @@ else()
 endif()
 
 add_executable( OMRdemos main.cpp )
+add_executable( omr_sender_smoke sender_smoke.cpp )
 
 target_link_libraries(OMRdemos SEAL::seal ntl m gmp stdc++fs)
+target_link_libraries(omr_sender_smoke SEAL::seal ntl m gmp stdc++fs)

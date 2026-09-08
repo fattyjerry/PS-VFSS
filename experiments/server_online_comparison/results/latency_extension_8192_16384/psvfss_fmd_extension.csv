@@ -1,0 +1,5 @@
+scheme,N,k_actual,trial_count,admission_batch_median_ms,retrieval_median_ms,retrieval_min_ms,retrieval_max_ms,server_online_total_median_ms,response_median_bytes,candidate_median,false_positive_median,measurement_quality,correctness_status
+PSVFSS,8192,50,3,32.56,5585.55,5545.66,5743.75,5617.988,,,,component_composed_pilot,failed
+PSVFSS,16384,50,3,54.027,11811.8,11003.2,12351.9,11863.323999999999,,,,component_composed_pilot,failed
+FMD,8192,50,3,,6107.166,6085.516,6119.296,6107.166,404,50,0,end_to_end_pilot,passed
+FMD,16384,50,3,,12541.628,12175.199,12613.957,12541.628,404,50,0,end_to_end_pilot,passed

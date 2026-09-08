@@ -25,10 +25,14 @@ def parse_args():
     parser.add_argument(
         "--ns", default="256,512,1024,2048,4096,8192,16384"
     )
+    parser.add_argument(
+        "--fmd-gamma", type=int, default=8,
+        help="FMD false-positive exponent; the paper uses p=2^-8",
+    )
     parser.add_argument("--fmd-reps", type=int, default=5)
     parser.add_argument("--omr-threads", type=int, default=4)
-    parser.add_argument("--omr-timeout-sec", type=int, default=300)
-    parser.add_argument("--pps-timeout-sec", type=int, default=300)
+    parser.add_argument("--omr-timeout-sec", type=int, default=9000)
+    parser.add_argument("--pps-timeout-sec", type=int, default=9000)
     parser.add_argument("--output", default=str(ROOT / "results" / "latest.csv"))
     return parser.parse_args()
 
@@ -74,7 +78,8 @@ def main():
                 [
                     "go", "run", "./cmd/fmdbench",
                     "--N", n, "--ell", str(args.ell),
-                    "--gamma", "24", "--reps", str(args.fmd_reps),
+                    "--gamma", str(args.fmd_gamma),
+                    "--reps", str(args.fmd_reps),
                 ],
                 ROOT / "baselines" / "fmd",
             ))

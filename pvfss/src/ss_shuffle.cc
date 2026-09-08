@@ -20,7 +20,7 @@ uint64_t LowMask(int bits) {
  * @param io: io
  * @param out: the pointer of output value.
  */
-void ShareTranslation(uint64_t *perm, int length, int party, HighSpeedNetIO *io,
+void ShareTranslation(uint64_t *perm, int length, int party, NetIO *io,
                       block *a, block *b, block *delta) {
   // alice has two outputs, a and b, while bob has only one, delta.
   std::vector<block> v(static_cast<size_t>(length) * length);
@@ -216,7 +216,7 @@ void Reallocate(block *v, int layer, int d, uint64_t N, uint64_t T, int n, int t
   memcpy(v, tmp.data(), N * sizeof(block));
 }
 
-void Offline(uint64_t N, uint64_t T, uint64_t *perms, uint64_t party, HighSpeedNetIO *io,
+void Offline(uint64_t N, uint64_t T, uint64_t *perms, uint64_t party, NetIO *io,
              uint64_t *perm, block *a, block * b, block *delta) {
   int n = (int)(log2(N));
   int t = (int)(log2(T));
@@ -319,7 +319,7 @@ void Offline(uint64_t N, uint64_t T, uint64_t *perms, uint64_t party, HighSpeedN
 void PermuteShare(uint64_t N, uint64_t T, 
                   uint64_t *perm, block *delta,
                   block *x, block *a, block *b,
-                  uint64_t party, HighSpeedNetIO *io, 
+                  uint64_t party, NetIO *io, 
                   block *out) {
   // implementation of single round permute+share
   int n = (int)(log2(N));
@@ -357,7 +357,7 @@ void PermuteShare(uint64_t N, uint64_t T,
   }
 }
 
-void SecretSharedShuffle(uint64_t N, uint64_t T, uint64_t party, HighSpeedNetIO *io, 
+void SecretSharedShuffle(uint64_t N, uint64_t T, uint64_t party, NetIO *io, 
                          block *x, uint64_t *perm, block *delta, block *a, block *b,
                          block *out) {
   std::vector<block> out0(N);

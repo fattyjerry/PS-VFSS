@@ -1,0 +1,26 @@
+series,scheme,fmd_gamma,N,N_physical,k_actual,trial_count,admission_batch_ms,admission_per_signal_ms,retrieval_online_ms,server_online_total_ms,measurement_status,measurement_quality,correctness_status
+PSVFSS,PSVFSS,,256,256,50,1,2.941,0.01148828125,180.198,183.139,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,512,512,50,1,5.094,0.00994921875,386.197,391.291,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,1024,1024,50,1,9.946,0.009712890625,805.889,815.835,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,2048,2048,50,1,14.002,0.0068369140625,1293.09,1307.0919999999999,ok,component_composed_pilot,failed
+PSVFSS,PSVFSS,,4096,4096,50,1,42.809,0.010451416015625,2245.11,2287.9190000000003,ok,component_composed_pilot,failed
+PPS-GC,PPS-GC,,256,256,50,1,344774.453,1346.77520703125,0.002,344774.45499999996,ok,end_to_end_pilot,not_recorded
+PPS-GC,PPS-GC,,512,512,50,1,1250167.763,2441.733912109375,0.003,1250167.766,ok,end_to_end_pilot,not_recorded
+PPS-GC,PPS-GC,,1024,1024,50,1,4742297.478,4631.149880859375,0.004,4742297.482,ok,end_to_end_pilot,not_recorded
+PPS-GC,PPS-GC,,2048,2048,50,0,,,,,not_completed,end_to_end_pilot,not_measured
+PPS-GC,PPS-GC,,4096,4096,50,0,,,,,not_completed,end_to_end_pilot,not_measured
+FMD gamma=8,FMD,8,256,256,50,1,,,104.734,104.734,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,512,512,50,1,,,205.576,205.576,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,1024,1024,50,1,,,419.162,419.162,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,2048,2048,50,1,,,833.158,833.158,ok,end_to_end_pilot,not_recorded
+FMD gamma=8,FMD,8,4096,4096,50,1,,,1671.863,1671.863,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,256,256,50,1,,,82.928,82.928,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,512,512,50,1,,,168.746,168.746,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,1024,1024,50,1,,,334.108,334.108,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,2048,2048,50,1,,,667.62,667.62,ok,end_to_end_pilot,not_recorded
+FMD gamma=6,FMD,6,4096,4096,50,1,,,1355.819,1355.819,ok,end_to_end_pilot,not_recorded
+OMR,OMR,,256,4096,50,1,,,101106,101106,ok,reduced_parameter_pilot,failed
+OMR,OMR,,512,4096,50,1,,,100323,100323,ok,reduced_parameter_pilot,failed
+OMR,OMR,,1024,4096,50,1,,,96516.4,96516.4,ok,reduced_parameter_pilot,failed
+OMR,OMR,,2048,4096,50,1,,,99421.9,99421.9,ok,reduced_parameter_pilot,failed
+OMR,OMR,,4096,4096,50,1,,,102687,102687,ok,reduced_parameter_pilot,failed

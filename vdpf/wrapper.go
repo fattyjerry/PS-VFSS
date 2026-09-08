@@ -6,7 +6,7 @@ package dpf
 // Simon Langowski spent many hours debugging this.
 
 // #cgo CFLAGS: -I${SRCDIR}/include
-// #cgo LDFLAGS: ${SRCDIR}/src/libdpf.a -lcrypto -lssl -lm -pthread
+// #cgo LDFLAGS: ${SRCDIR}/src/libdpf.a -lcrypto -lssl -lm
 // #include "dpf.h"
 // #include "mmo.h"
 import "C"
@@ -69,6 +69,7 @@ func (dpf *Dpf) GenDPFKeys(specialIndex uint64, rangeSize uint) (*DPFKey, *DPFKe
 		dpf.ctx,
 		C.int(rangeSize),
 		C.uint64_t(specialIndex),
+		C.uint64_t(1),
 		(*C.uint8_t)(unsafe.Pointer(&k0[0])),
 		(*C.uint8_t)(unsafe.Pointer(&k1[0])),
 	)

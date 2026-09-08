@@ -1,0 +1,6 @@
+scheme,fmd_gamma,N,k_actual,trial_count,retrieval_median_ms,retrieval_min_ms,retrieval_max_ms,response_median_bytes,response_min_bytes,response_max_bytes,candidate_median,false_positive_median,measurement_quality
+FMD,16,256,50,3,184.048,183.9,187.95,404,404,404,50,0,end_to_end_pilot
+FMD,16,512,50,3,370.281,368.865,374.85,404,404,404,50,0,end_to_end_pilot
+FMD,16,1024,50,3,753.095,745.634,763.981,404,404,404,50,0,end_to_end_pilot
+FMD,16,2048,50,3,1501.037,1500.349,1514.237,404,404,404,50,0,end_to_end_pilot
+FMD,16,4096,50,3,3008.848,2976.926,3014.812,404,404,404,50,0,end_to_end_pilot
