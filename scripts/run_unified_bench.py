@@ -15,7 +15,7 @@ HEADER = [
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Run the PVFSS, FMD, OMR, and PPS-GC paper benchmarks."
+        description="Run the PSVFSS, FMD, OMR, and PPS-GC paper benchmarks."
     )
     parser.add_argument(
         "schemes", nargs="*", choices=["pvfss", "fmd", "omr", "pps-gc"],

@@ -1,6 +1,6 @@
 # PSVFSS Artifact
 
-C++ research prototype of PVFSS with FMD, OMR, and PPS-GC baselines. The
+C++ research prototype of PSVFSS with FMD, OMR, and PPS-GC baselines. The
 repository contains the protocol implementation, benchmark drivers, and
 evaluation data.
 
@@ -37,7 +37,7 @@ allocation or support at least 3072-bit precision.
 ## Build
 
 ```bash
-cmake -S psvfss -B pvfss/build \
+cmake -S pvfss -B pvfss/build \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="/path/to/relic;/path/to/cryptoTools" \
   -DEMP_ROOT=/path/to/emp
@@ -74,7 +74,7 @@ See `results/README.md` for the data index and experiment tiers.
 
 ## Layout
 
-- `psvfss`: PSVFSS implementation
+- `pvfss`: PSVFSS implementation
 - `vdpf`: bundled DPF/VDPF implementation
 - `baselines`: FMD, OMR, and PPS-GC
 - `scripts`: build and benchmark drivers

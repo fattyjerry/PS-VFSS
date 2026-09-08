@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ps-vfss.local/schemas/server-online-raw-trial-1.0.0.json",
-  "title": "PS-VFSS Server Online Comparison Raw JSONL Trial",
+  "title": "PSVFSS Server Online Comparison Raw JSONL Trial",
   "type": "object",
   "additionalProperties": false,
   "required": [

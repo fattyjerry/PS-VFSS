@@ -3,7 +3,7 @@
 ## Data sets
 
 - `paper_main.csv`: recovered four-scheme paper workload
-- `pvfss_breakdown.csv`: recovered PVFSS component breakdown
+- `pvfss_breakdown.csv`: recovered PSVFSS component breakdown
 - `vereval_scaling/formal`: completed VerEval scaling matrix
 - `sender_scalability_logspace_summary.csv`: sender scaling summary
 - `sender_signaling_final`: sender single/repeated-signal measurements

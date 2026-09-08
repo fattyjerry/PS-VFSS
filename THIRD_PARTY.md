@@ -8,9 +8,9 @@ included in `vdpf/README.md`.
 
 ## Secret-Shared Shuffle
 
-The PVFSS prototype started from an unofficial implementation of
+The PSVFSS prototype started from an unofficial implementation of
 Secret-Shared Shuffle (<https://eprint.iacr.org/2019/1340>). The artifact
-adds the PVFSS protocol integration, correctness checks, benchmark output,
+adds the PSVFSS protocol integration, correctness checks, benchmark output,
 and the paper workload driver.
 
 ## PPS-GC

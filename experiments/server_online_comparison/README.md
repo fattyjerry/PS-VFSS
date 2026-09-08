@@ -1,7 +1,7 @@
 # Server-online comparison
 
 This experiment separates signal admission, retrieval, response serialization,
-and recipient processing for PVFSS, PPS-GC, FMD, and OMR.
+and recipient processing for PSVFSS, PPS-GC, FMD, and OMR.
 
 - `EXPERIMENT_CONTRACT.md`: workload and measurement boundary
 - `workload.schema.json`: common workload format
@@ -11,7 +11,7 @@ and recipient processing for PVFSS, PPS-GC, FMD, and OMR.
 ## Result organization
 
 - FMD and PPS-GC directories contain native baseline pilot measurements.
-- PVFSS component campaigns record their preprocessing mode and timing split.
+- PSVFSS component campaigns record their preprocessing mode and timing split.
 - OMR campaigns record the BFV degree, physical slot count, and security mode.
 - Larger-workload and recipient-processing studies are stored separately from
   the common workload.
