@@ -74,7 +74,7 @@ See `results/README.md` for the data index and experiment tiers.
 
 ## Layout
 
-- `psvfss`: PVFSS implementation
+- `psvfss`: PSVFSS implementation
 - `vdpf`: bundled DPF/VDPF implementation
 - `baselines`: FMD, OMR, and PPS-GC
 - `scripts`: build and benchmark drivers
