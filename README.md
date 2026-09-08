@@ -1,4 +1,4 @@
-# PVFSS Artifact
+# PSVFSS Artifact
 
 C++ research prototype of PVFSS with FMD, OMR, and PPS-GC baselines. The
 repository contains the protocol implementation, benchmark drivers, and
