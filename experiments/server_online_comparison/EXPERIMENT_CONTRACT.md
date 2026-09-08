@@ -2,6 +2,13 @@
 
 Contract version: `1.0.1`
 
+> Status note: this is the frozen pre-instrumentation contract and is retained
+> to document measurement decisions. Statements below headed “currently
+> implemented” describe that historical checkpoint, not the repository's latest
+> code. Current dataset validity and implementation status are indexed in
+> `README.md` in this directory; row-level status and correctness fields remain
+> authoritative.
+
 This document fixes protocol lifecycle, workload, measurement, communication,
 correctness, and resume semantics before instrumentation is added. It describes
 what later benchmarks must measure; it does not claim that every phase is

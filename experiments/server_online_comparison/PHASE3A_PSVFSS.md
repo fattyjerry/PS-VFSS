@@ -1,5 +1,9 @@
 # Phase 3A — PSVFSS correctness foundation
 
+> Historical phase record. This file records the Phase 3A checkpoint and its
+> blockers; it is not a description of the latest implementation. See
+> `README.md` for current evidence levels and usable datasets.
+
 ## Scope and measurement boundary
 
 This phase changes no Cprs/Compress or shuffle implementation and defines no new

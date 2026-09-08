@@ -1,41 +1,40 @@
 # PVFSS Artifact
 
-This repository contains the PVFSS prototype, the PPS-GC baseline used in
-the evaluation, benchmark drivers, and the data reported by the paper.
-The code is a research prototype and is not intended for production use.
+C++ research prototype of PVFSS with FMD, OMR, and PPS-GC baselines. The
+repository contains the protocol implementation, benchmark drivers, and
+evaluation data.
 
-## Repository layout
+## Features
 
-- `pvfss/`: two-party PVFSS implementation and benchmark drivers
-- `vdpf/`: bundled DPF/VDPF implementation used by PVFSS
-- `baselines/fmd/`: Fuzzy Message Detection baseline
-- `baselines/omr/`: Oblivious Message Retrieval baseline
-- `baselines/pps-gc/`: PPS garbled-circuit baseline and its pinned dependencies
-- `scripts/run_unified_bench.py`: common benchmark entry point
-- `results/`: paper data and measurement notes
+- Two-party PVFSS implementation with admission-time VDPF verification
+- FMD, OMR, and PPS-GC comparison implementations
+- Unified end-to-end benchmark driver
+- VerEval, sender/client cost, and server-online component experiments
+- Raw measurements and reproducible summaries
 
-## Evaluation workload
+## Parameters
 
-The main comparison fixes `ell=50` and evaluates
-`N={256,512,1024,2048,4096,8192,16384}`. All output uses this schema:
+| Item | Setting |
+|---|---|
+| Security parameter | 128 bits in the PVFSS implementation |
+| VDPF value field | `2^61-1` |
+| Main workload | `ell=50`, `N=256 ... 16384` |
+| OMR/PPS-GC per-point limit | 9000 seconds |
 
-```text
-scheme,N,ell,setup_ms,send_ms,server_ms,recipient_ms,comm_bytes,status,bottleneck
-```
+The baselines retain their native parameters; the repository does not claim
+that every scheme has an identical formal security level.
 
-Rows with `status=timeout` preserve the experimental hard limit and do not
-claim a completed runtime. See `results/README.md` for details.
+## Requirements
 
-## Build PVFSS
+- Ubuntu 22.04 or compatible Linux x86-64
+- CMake 3.21+, GCC, Python 3, Go, and Rust
+- OpenSSL, RELIC, EMP Toolkit, cryptoTools, PALISADE, SEAL, NTL, and GMP
+- AES-NI, PCLMULQDQ, and AVX2
 
-The tested environment is Linux x86-64 with GCC, CMake 3.21+, OpenSSL,
-RELIC, EMP Toolkit, and cryptoTools. The processor must support AES-NI and
-AVX2 because the prototype is compiled with `-maes -mavx2 -march=native`.
-The preprocessing code requests a 3072-bit Paillier key. RELIC must therefore
-use dynamic big-number allocation (`ALLOC=DYNAMIC`) or be built with
-`BN_PRECI=3072`; a smaller static precision fails with `ERR_NO_PRECI`.
+PVFSS uses 3072-bit Paillier preprocessing. RELIC must use dynamic big-number
+allocation or support at least 3072-bit precision.
 
-Set the dependency prefixes and build:
+## Build
 
 ```bash
 cmake -S pvfss -B pvfss/build \
@@ -43,86 +42,47 @@ cmake -S pvfss -B pvfss/build \
   -DCMAKE_PREFIX_PATH="/path/to/relic;/path/to/cryptoTools" \
   -DEMP_ROOT=/path/to/emp
 cmake --build pvfss/build --parallel
+
+scripts/build_fmd.sh
+scripts/build_omr.sh
+scripts/build_ppsgc.sh
 ```
 
-`EMP_ROOT` must contain `include/emp-tool` and `include/emp-ot`. The bundled
-VDPF library is built automatically. Use `-DVDPF_ROOT=/other/path` only when
-testing another VDPF checkout.
-
-Run a small two-party smoke test:
-
-```bash
-python3 pvfss/run_psvfss_unified.py \
-  --binary pvfss/build/src/test --ns 16 --T 4 --ell 3 --online-reps 1
-```
-
-Run the admission-time VDPF verification tests:
+Run the admission regression test:
 
 ```bash
 pvfss/build/src/admission_test
 ```
 
-The test simulates both non-colluding servers on the same ordered registered
-identifier sequence. It checks that an honest key pair is accepted and stored,
-while inconsistent key shares, tampered proofs, and duplicate signal
-identifiers are rejected without changing either verified signal-key database.
+## Experiments
 
-## Build baselines
-
-Build FMD:
+Run the common four-scheme workload:
 
 ```bash
-scripts/build_fmd.sh
+python3 scripts/run_unified_bench.py \
+  --fmd-gamma 8 --omr-timeout-sec 9000 --pps-timeout-sec 9000
 ```
 
-OMR requires PALISADE, Microsoft SEAL 3.6, NTL, and GMP discoverable by
-CMake:
+Additional entry points:
 
-```bash
-scripts/build_omr.sh
-```
+- `scripts/run_vereval_scaling.sh`: admission-time VerEval scaling
+- `results/run_sender_scalability_logspace.sh`: sender signaling scaling
+- `scripts/run_client_v2.py`: sender/recipient client smoke benchmark
+- `experiments/server_online_comparison`: server-online component experiments
 
-Build PPS-GC:
+See `results/README.md` for the data index. Pilot, failed-correctness, and
+reduced-parameter rows are labeled and are not formal comparison results.
 
-The baseline is pinned to its original 2021 Rust toolchain. On newer stable
-Rust, the benchmark can also be built with `RUSTC_BOOTSTRAP=1`:
+## Layout
 
-```bash
-cd baselines/pps-gc/pps-garbled-circuits
-RUSTC_BOOTSTRAP=1 cargo +stable build --release --example unified-bench
-cd ../../..
-```
+- `pvfss`: PVFSS implementation
+- `vdpf`: bundled DPF/VDPF implementation
+- `baselines`: FMD, OMR, and PPS-GC
+- `scripts`: build and benchmark drivers
+- `experiments`: extended experiments and notes
+- `results`: measurements and summaries
 
-Run the small end-to-end validation:
+## Notes
 
-```bash
-python3 baselines/pps-gc/run_ppsgc_unified.py \
-  --ns 4 --ell 2 --per-n-limit-sec 300
-```
-
-## Reproduce the common benchmark
-
-After building both binaries:
-
-```bash
-python3 scripts/run_unified_bench.py
-```
-
-The command writes `results/latest.csv`. OMR and PPS-GC use a 300-second
-per-`N` limit by default. A timeout is a valid experimental outcome and the
-runner continues with the remaining values of `N`.
-
-To run only one implementation or a reduced workload:
-
-```bash
-python3 scripts/run_unified_bench.py pvfss --ns 256,512
-python3 scripts/run_unified_bench.py fmd --ns 256,512
-python3 scripts/run_unified_bench.py omr --ns 256 --omr-timeout-sec 300
-python3 scripts/run_unified_bench.py pps-gc --ns 256 --pps-timeout-sec 300
-```
-
-## Provenance
-
-This artifact contains modified research code from VDPF, Secret-Shared
-Shuffle, PPS-GC, and Swanky. See `THIRD_PARTY.md` for source links and the
-scope of the benchmark modifications.
+This is an experimental research prototype. It has not been independently
+audited and should not be used in production.

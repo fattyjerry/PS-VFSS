@@ -1,47 +1,33 @@
 # Evaluation data
 
-`paper_main.csv` contains the common workload used for PVFSS, FMD, OMR,
-and PPS-GC:
+## Data sets
 
-- `ell = 50`
-- `N = 256, 512, 1024, 2048, 4096, 8192, 16384`
-- PPS-GC hard limit: 300 seconds per value of `N`
-- OMR hard limit: 300 seconds per value of `N`
-- FMD repetitions: 5
+- `paper_main.csv`: recovered four-scheme paper workload
+- `pvfss_breakdown.csv`: recovered PVFSS component breakdown
+- `vereval_scaling/formal`: completed VerEval scaling matrix
+- `sender_scalability_logspace_summary.csv`: sender scaling summary
+- `sender_signaling_final`: sender single/repeated-signal measurements
+- `client_v2`: client benchmark smoke data
+- `../experiments/server_online_comparison/results`: server-online pilots
 
-Zero timing fields on a `timeout` row mean that the run did not complete
-within the hard limit. They are not measured zero-cost operations.
+Raw files are retained beside summaries. Failed, invalid, timed-out, or
+failed-correctness rows must not enter aggregate comparisons. Blank values mean
+unavailable, not zero.
 
-`pvfss_breakdown.csv` reports one offline setup and the average of five
-online repetitions. The component timings are in milliseconds.
-
-## VerEval scaling
-
-`vereval_scaling/formal/` contains the formal VerEval measurements for
-the ordered registered-recipient set `X`. The experiment covers:
-
-- `|X| = 10,000, 100,000, 1,000,000`;
-- `threads = 1, 2, 4, 8, 16`;
-- two warm-up runs followed by ten measured repetitions per configuration;
-- a 50-bit VDPF input domain.
-
-Each CSV row records the two local server times and
-`protocol_wall_ms`, defined as the maximum of those two times to model
-concurrent server execution. The paper reports the median
-`protocol_wall_ms` over the ten measured repetitions.
-
-The `proof_equal` and `outputs_correct` columns must both equal `1`.
-All 150 formal measurement rows satisfy these checks. The host and
-toolchain used for the formal run are recorded in
-`vereval_scaling/formal/environment.txt`.
-
-Reproduce the complete matrix with:
+## Reproduction
 
 ```bash
+# Main workload
+python3 scripts/run_unified_bench.py \
+  --fmd-gamma 8 --omr-timeout-sec 9000 --pps-timeout-sec 9000
+
+# VerEval scaling
 bash scripts/run_vereval_scaling.sh
+
+# Sender scaling
+bash results/run_sender_scalability_logspace.sh
 ```
 
-By default, new output is written to
-`results/vereval_scaling/reproduced/` so that the committed formal data
-is not overwritten. Raw progress logs and build products are not
-versioned.
+The formal VerEval matrix covers `|X|={10000,100000,1000000}` and
+`threads={1,2,4,8,16}`. All 150 measured rows have `proof_equal=1` and
+`outputs_correct=1`.

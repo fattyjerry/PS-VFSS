@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -u
 
-ROOT="/home/zjr/PS-VFSS"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 RUN_DIR="$ROOT/results/sender_scalability_logspace_run"
 PS="$ROOT/pvfss/build-sender-smoke/src/ps_vfss_sender_smoke"
 FMD="$RUN_DIR/fmd_sender_scale"
