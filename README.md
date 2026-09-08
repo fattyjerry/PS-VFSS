@@ -6,7 +6,7 @@ evaluation data.
 
 ## Features
 
-- Two-party PVFSS implementation with admission-time VDPF verification
+- Two-party PSVFSS implementation with admission-time VDPF verification
 - FMD, OMR, and PPS-GC comparison implementations
 - Unified end-to-end benchmark driver
 - VerEval, sender/client cost, and server-online component experiments
@@ -16,7 +16,7 @@ evaluation data.
 
 | Item | Setting |
 |---|---|
-| Security parameter | 128 bits in the PVFSS implementation |
+| Security parameter | 128 bits in the PSVFSS implementation |
 | VDPF value field | `2^61-1` |
 | Main workload | `ell=50`, `N=256 ... 16384` |
 | OMR/PPS-GC per-point limit | 9000 seconds |
@@ -31,13 +31,13 @@ that every scheme has an identical formal security level.
 - OpenSSL, RELIC, EMP Toolkit, cryptoTools, PALISADE, SEAL, NTL, and GMP
 - AES-NI, PCLMULQDQ, and AVX2
 
-PVFSS uses 3072-bit Paillier preprocessing. RELIC must use dynamic big-number
+PSVFSS uses 3072-bit Paillier preprocessing. RELIC must use dynamic big-number
 allocation or support at least 3072-bit precision.
 
 ## Build
 
 ```bash
-cmake -S pvfss -B pvfss/build \
+cmake -S psvfss -B pvfss/build \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="/path/to/relic;/path/to/cryptoTools" \
   -DEMP_ROOT=/path/to/emp
@@ -74,7 +74,7 @@ See `results/README.md` for the data index and experiment tiers.
 
 ## Layout
 
-- `pvfss`: PVFSS implementation
+- `psvfss`: PVFSS implementation
 - `vdpf`: bundled DPF/VDPF implementation
 - `baselines`: FMD, OMR, and PPS-GC
 - `scripts`: build and benchmark drivers
